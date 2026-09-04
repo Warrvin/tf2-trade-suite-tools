@@ -1,0 +1,156 @@
+/**
+ * Стили атрибутов предметов — НЕ токены tf2s-root (styles/tokens.css):
+ * эти классы вешаются напрямую на реальные элементы страницы Steam (не
+ * внутри shadow root), поэтому подключены как обычный контент-скрипт CSS
+ * (manifest-инъекция) в КАЖДОМ entrypoint'е, которому они нужны — сейчас
+ * entrypoints/tradeoffer-attributes.content.ts (окно оффера),
+ * entrypoints/inventory-attributes.content.ts (страница инвентаря) и
+ * entrypoints/market-attributes.content.ts (листинги Steam Market), — а не
+ * через createShadowRootUi. Общий файл для всех трёх модулей (не
+ * дублируется, требование 4): классы и разметка, которую строит
+ * utils/item-attribute-render.ts, одинаковы независимо от страницы.
+ * Названия классов и часть значений — 1:1 из Steam Trade Offer
+ * Enhancer 2.2.8, чтобы визуал совпадал (требование 6).
+ */
+
+.tf2s-attr-unusual {
+  background-position: center !important;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/*
+ * Market-листинги — единственное место среди трёх страниц, где иконка
+ * предмета рисуется через <img>, а не через CSS background-image на самом
+ * .item/контейнере (offer/inventory рисуют её фоном). Поэтому unusual-фон,
+ * который applyItemAttributesToElement ставит на контейнер, без этого
+ * правила был бы полностью перекрыт непрозрачной картинкой сверху — этот
+ * <img> должен стать прозрачным, только когда на контейнере есть unusual
+ * (иначе у не-unusual предметов пропадёт собственная иконка).
+ */
+.tf2s-attr-unusual img.market_listing_item_img {
+  background: transparent !important;
+}
+
+.tf2s-attr-uncraft {
+  border-style: dashed !important;
+}
+
+.tf2s-attr-strange::before {
+  content: ' ';
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border: 2px solid rgba(207, 106, 50, 0.5);
+  pointer-events: none;
+}
+
+.tf2s-attr-lowcraft {
+  user-select: none;
+  position: absolute !important;
+  right: 4%;
+  bottom: 4%;
+  text-align: end;
+  width: 50% !important;
+  font-size: 16px;
+  z-index: 1;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/*
+ * Раскладка значков — вертикальный столбик слева. Изначально стоял в левом
+ * верхнем углу (по референсу пользователя), но там же Steam рисует свой
+ * собственный красный "!" (переименованный предмет) — он накладывался на
+ * наши иконки. Левый нижний угол свободен от штатных значков Steam (правый
+ * нижний уже занят нашим же lowcraft-номером выше), поэтому столбик растёт
+ * вверх от низа тайла.
+ */
+.tf2s-attr-icons {
+  position: absolute !important;
+  pointer-events: none;
+  bottom: 3% !important;
+  left: 3% !important;
+  top: auto !important;
+  width: auto !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 2px !important;
+  z-index: 1;
+}
+
+/*
+ * БАГ (исправлено): страница Steam задаёт собственные широкие правила
+ * размера для <img> внутри тайла предмета (например ".item img" — заливка
+ * иконки предмета на всю плитку), и наши иконки как обычные <img>-потомки
+ * .item под эти правила тоже попадали, из-за чего растягивались на всю
+ * ширину тайла вместо маленькой иконки в углу. Оригинальный Steam Trade
+ * Offer Enhancer защищён от этого составным селектором ".icons img.spell"
+ * (класс родителя + тег + класс — специфичность выше плоского правила
+ * ".item img"); здесь тот же приём (".tf2s-attr-icons img.tf2s-attr-icon")
+ * плюс !important и явный сброс position/flex, чтобы не зависеть от того,
+ * что именно задаёт Steam.
+ */
+.tf2s-attr-icons img.tf2s-attr-icon {
+  position: static !important;
+  display: block !important;
+  max-width: none !important;
+  flex: none !important;
+  vertical-align: top !important;
+  width: 20px !important;
+  height: 20px !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85)) !important;
+}
+
+/*
+ * "Подробный" вид (renderDetailedIcons в apply.ts) — картиночные иконки для
+ * распознанных спеллов (см. utils/spell-icons.ts, по мотивам присланных
+ * пользователем иконок с Flaticon), перекрашенные под конкретный вариант
+ * через currentColor. drop-shadow — чтобы силуэт не терялся на светлом/
+ * пёстром фоне предмета (тот же приём, что у simple-иконок выше).
+ */
+.tf2s-attr-icons svg.tf2s-attr-svg-icon {
+  position: static !important;
+  display: block !important;
+  flex: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  filter: drop-shadow(0 0 1.2px rgba(0, 0, 0, 0.9)) !important;
+}
+
+/*
+ * Killstreak (всегда) и совсем нераспознанный спелл (нет картинки под него)
+ * — цветной текстовый бейдж с коротким кодом + точное название в title.
+ * Пунктирная рамка у нераспознанного — честный сигнал "спелл точно есть,
+ * вид не определён" (см. utils/spells.ts fallback), а не выдуманная иконка.
+ */
+.tf2s-attr-icons span.tf2s-attr-badge {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: none !important;
+  height: 18px !important;
+  min-width: 20px !important;
+  padding: 0 4px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  color: #101214 !important;
+  text-shadow: none !important;
+  white-space: nowrap !important;
+  vertical-align: top !important;
+  border: 1px solid rgba(0, 0, 0, 0.35) !important;
+}
+
+.tf2s-attr-icons span.tf2s-attr-badge--unknown {
+  border: 1px dashed rgba(0, 0, 0, 0.55) !important;
+}

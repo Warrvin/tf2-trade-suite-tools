@@ -1,0 +1,55 @@
+/*
+ * Панель встраивается ВНУТРИ блока управления трейд-оффером (.trade_box_contents,
+ * см. entrypoints/tradeoffer-quickadd.content.ts) — рядом с полями "Добавить
+ * сообщение"/индикатором готовности, а не отдельным плавающим окном (в отличие
+ * от wallet-summary): она нужна ровно тогда, когда пользователь и так смотрит
+ * на слоты оффера, а не как что-то, что можно свернуть в угол экрана.
+ */
+
+.tf2s-quickadd {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--tf2s-space-3);
+  margin: var(--tf2s-space-3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tf2s-space-2);
+}
+
+.tf2s-quickadd__row {
+  display: flex;
+  align-items: center;
+  gap: var(--tf2s-space-2);
+  flex-wrap: wrap;
+}
+
+.tf2s-quickadd__input {
+  appearance: none;
+  border: 1px solid var(--tf2s-border);
+  background: var(--tf2s-bg);
+  color: var(--tf2s-text);
+  border-radius: var(--tf2s-radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  width: 96px;
+  flex: none;
+}
+.tf2s-quickadd__input:focus {
+  outline: none;
+  border-color: var(--tf2s-accent);
+}
+.tf2s-quickadd__input::placeholder {
+  color: var(--tf2s-text-faint);
+}
+
+.tf2s-quickadd__btn {
+  flex: none;
+}
+
+.tf2s-quickadd__message {
+  font-size: 11.5px;
+  color: var(--tf2s-text-dim);
+}
+.tf2s-quickadd__message--error {
+  color: var(--tf2s-bad);
+}

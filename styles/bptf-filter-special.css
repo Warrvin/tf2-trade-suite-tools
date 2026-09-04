@@ -1,0 +1,11 @@
+/**
+ * Кнопки "Только spells"/"Только strange parts" оформлены их же bootstrap-
+ * классами (`btn btn-default btn-sm`, см. modules/bptf-filter-special/
+ * core.ts) — та же логика, что у stn-item-links.css/bptf-ks-tier-buttons.css:
+ * встраиваемся прямо над их списком объявлений, чужая палитра тут была бы
+ * инородной. Поэтому здесь только отступ, для которого одних inline-стилей
+ * в core.ts не хватило.
+ */
+.tf2s-filter-special-toolbar {
+  margin-bottom: 8px;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "tf2-trade-suite-tools",
+  "version": "1.0.0",
+  "description": "TF2 Trade Suite Tools — единое расширение для трейда в Team Fortress 2 с переключаемыми модулями (Chrome/Firefox/Edge)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.4.31"
+  },
+  "devDependencies": {
+    "@wxt-dev/module-vue": "^1.0.0",
+    "typescript": "^5.5.3",
+    "vue-tsc": "^2.0.24",
+    "wxt": "^0.19.13"
+  }
+}

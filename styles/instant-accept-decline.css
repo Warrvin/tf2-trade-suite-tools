@@ -1,0 +1,59 @@
+/**
+ * Кнопки "Принять"/"Отклонить" в списке офферов — НЕ мимикрия под родные
+ * `whiteLink`-ссылки рядом ("Respond to Offer | Decline Trade"): это новая
+ * пара элементов, которой у Steam тут нативно нет, поэтому уместна своя
+ * палитра расширения (styles/tokens.css, подключён тем же side-effect
+ * импортом в entrypoint) — выделяется на фоне текстовых ссылок, сразу видно,
+ * что это "быстрый путь" TF2 Suite. `--tf2s-good`/`--tf2s-bad` — те же
+ * токены, что и везде в проекте для позитивных/негативных состояний.
+ */
+
+.tf2s-iad-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 2px;
+}
+
+.tf2s-iad-btn {
+  appearance: none;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Motiva Sans', 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  color: #0c0f13;
+}
+.tf2s-iad-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.tf2s-iad-btn--accept {
+  background: #6fbf73;
+}
+.tf2s-iad-btn--accept:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.tf2s-iad-btn--decline {
+  background: #e2726f;
+}
+.tf2s-iad-btn--decline:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.tf2s-iad-status {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tf2s-iad-status--pending {
+  color: #b9c2cf;
+}
+.tf2s-iad-status--ok {
+  color: #6fbf73;
+}
+.tf2s-iad-status--error {
+  color: #e2726f;
+}

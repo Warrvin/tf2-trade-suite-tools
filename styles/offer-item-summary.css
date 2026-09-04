@@ -1,0 +1,35 @@
+/**
+ * Стили бейджа "×N" (схлопнутые повторяющиеся предметы) — НЕ токены
+ * tf2s-root (styles/tokens.css), та же причина, что и у
+ * styles/offer-currency-total.css (см. её шапку): бейдж вставляется
+ * напрямую в разметку страницы Steam, не внутри shadow root.
+ */
+
+.tf2s-item-qty {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: #1e242c;
+  border: 1px solid #333c48;
+  color: #e7ebf2;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.3;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tf2s-history-qty {
+  display: inline-block;
+  margin-left: 4px;
+  background: #1e242c;
+  border: 1px solid #333c48;
+  color: #e7ebf2;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.3;
+}

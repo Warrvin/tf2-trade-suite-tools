@@ -1,0 +1,34 @@
+/**
+ * Кнопка вставляется НАПРЯМУЮ в разметку страницы Market (не в shadow root
+ * — по одной на КАЖДУЮ строку листинга, полноценный shadow root на строку
+ * был бы неоправданно тяжёлым), рядом с родной Buy-ссылкой/кнопкой Steam —
+ * поэтому подключена как обычный контент-скрипт CSS, аналогично
+ * styles/item-attributes.css, а не через createShadowRootUi. Цвета —
+ * литеральные копии токенов styles/tokens.css (там они живут внутри
+ * .tf2s-root ради изоляции переменных от чужого CSS страницы — здесь того
+ * же эффекта проще и надёжнее добиться литералами, не заводя ради одной
+ * маленькой кнопки на строку свой .tf2s-root с его `all: initial`, который
+ * сломал бы обтекание вокруг родной Buy-кнопки).
+ */
+
+.tf2s-market-pricedb-check {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  border-radius: 5px;
+  border: 1px solid #333c48;
+  background: #1e242c;
+  color: #9aa4b2;
+  text-decoration: none !important;
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: middle;
+}
+.tf2s-market-pricedb-check:hover {
+  color: #ffb98a;
+  background: rgba(207, 106, 50, 0.16);
+  border-color: #cf6a32;
+}

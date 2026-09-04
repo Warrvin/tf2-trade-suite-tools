@@ -1,0 +1,55 @@
+/**
+ * Стили плашки суммы валюты в списке офферов/истории — НЕ токены tf2s-root
+ * (styles/tokens.css): плашка вставляется напрямую в разметку страницы
+ * Steam (не внутри shadow root — как и styles/item-attributes.css, см. её
+ * шапку за тем, почему), поэтому подключена как обычный контент-скрипт CSS,
+ * а не через createShadowRootUi. Цвета — те же значения, что и переменные
+ * tokens.css (--tf2s-surface/--tf2s-border/--tf2s-text и т.д.), просто
+ * буквально, а не через var() — здесь этих переменных нет (они объявлены
+ * только на .tf2s-root, которого здесь не существует).
+ */
+
+.tf2s-offercur {
+  display: flex;
+  align-items: stretch;
+  margin: 4px 0 8px;
+  background: #1e242c;
+  border: 1px solid #333c48;
+  border-radius: 9px;
+  overflow: hidden;
+  font-family: 'Motiva Sans', 'Segoe UI', Arial, sans-serif;
+}
+
+.tf2s-offercur__side {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tf2s-offercur__label {
+  color: #9aa4b2;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tf2s-offercur__value {
+  color: #e7ebf2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tf2s-offercur__divider {
+  width: 1px;
+  align-self: stretch;
+  background: #333c48;
+  flex-shrink: 0;
+}

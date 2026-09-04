@@ -1,0 +1,45 @@
+/**
+ * Кнопки переключения килстрик-тиров на classic backpack.tf оформлены ИХ ЖЕ
+ * bootstrap-классами (`btn btn-variety` на /stats, `btn btn-default` на
+ * /classifieds — см. modules/bptf-ks-tier-buttons/core.ts), а не своей
+ * палитрой styles/tokens.css: та же логика, что и у stn-item-links.css —
+ * встраиваемся рядом с нативным пикером качества/крошками фильтров той же
+ * страницы, чужая палитра рядом с их родными кнопками выглядела бы
+ * инородно. Здесь поэтому только мелкий визуальный штрих, для которого
+ * inline-стилей в core.ts недостаточно.
+ */
+
+/* Наша строка кнопок идёт своей отдельной группой под пикером качества
+   (после вставленного <br>, см. core.ts) — небольшой отступ сверху, чтобы
+   она не липла к нему вплотную, как у соседних .btn-group на той же странице. */
+.stats-killstreak-list {
+  margin-top: 4px;
+}
+
+/* Выпадашка "Эффекты" (createEffectsFilter, core.ts) — своих правил
+   позиционирования/показа не пишем (см. doc-блок core.ts): `.dropdown-menu`
+   и `.open` уже приходят из их bootstrap.css. Ниже — только внутренняя
+   раскладка содержимого, которого в нативной модалке под наш формат нет. */
+.tf2s-ks-effects-menu {
+  padding: 10px 12px;
+  min-width: 240px;
+}
+.tf2s-ks-effect-group + .tf2s-ks-effect-group {
+  margin-top: 8px;
+}
+.tf2s-ks-effect-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tf2s-ks-effect-list label {
+  margin: 0;
+}
+.tf2s-ks-effects-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e5e5;
+}

@@ -1,0 +1,66 @@
+/*
+ * Плавающее окно поверх страницы scrap.tf — тот же класс расположения, что
+ * у modules/wallet-summary/panel.css (fixed + свой z-index), только левый
+ * нижний угол вместо правого (как у оригинала tf2TradingUtils), чтобы не
+ * перекрывать плавающие элементы самого scrap.tf, если они окажутся справа.
+ */
+
+.tf2s-scrapmodal-host {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2147483000;
+}
+
+.tf2s-scrapmodal {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  min-width: 220px;
+  min-height: 84px;
+  max-width: 90vw;
+  max-height: 80vh;
+  /* Регулировка по ширине И высоте — прямая просьба пользователя, родным
+     CSS-свойством вместо своего перетаскивания уголка мышью. */
+  resize: both;
+  overflow: auto;
+}
+
+.tf2s-scrapmodal__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tf2s-space-2);
+  padding: var(--tf2s-space-2) var(--tf2s-space-3);
+  background: var(--tf2s-surface-2);
+  border-bottom: 1px solid var(--tf2s-border);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  flex: none;
+}
+.tf2s-scrapmodal__header--dragging {
+  cursor: grabbing;
+}
+.tf2s-scrapmodal__header button {
+  cursor: pointer;
+}
+
+.tf2s-scrapmodal__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.tf2s-scrapmodal__body {
+  padding: var(--tf2s-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--tf2s-space-2);
+  flex: 1;
+}
+
+.tf2s-scrapmodal__link {
+  text-decoration: none;
+}

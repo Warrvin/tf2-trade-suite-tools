@@ -1,0 +1,67 @@
+/**
+ * Стили steam-profile-links.
+ *
+ * Сами пункты ряда `.profile_item_links` (backpack.tf/SteamHistory/
+ * posts.tf/Community Bans/SteamID) НИЧЕГО своего не переопределяют —
+ * используют классы `profile_count_link ellipsis` самого Steam, чей CSS
+ * уже загружен на странице (см. modules/steam-profile-links/core.ts) —
+ * этим и достигается "в дизайне Стима" по прямой просьбе пользователя.
+ * `.tf2s-steamprofile-item` ниже — просто крючок для удаления при
+ * выключении модуля, не несёт стилей.
+ *
+ * Попап SteamID64/32/классического — это НЕ часть родной вёрстки Steam,
+ * поэтому здесь как раз уместна собственная палитра расширения
+ * (styles/tokens.css, класс `.tf2s-root`/`.tf2s-panel`, подключены тем же
+ * side-effect импортом в entrypoint) — тот же приём, что у любого другого
+ * всплывающего окна TF2 Suite.
+ */
+
+.tf2s-steamprofile-item {
+  cursor: pointer;
+}
+
+.tf2s-steamprofile-popover {
+  padding: var(--tf2s-space-3);
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tf2s-space-2);
+}
+
+.tf2s-steamprofile-popover-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--tf2s-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tf2s-steamprofile-idrow {
+  display: flex;
+  align-items: center;
+  gap: var(--tf2s-space-2);
+  font-size: 12px;
+}
+
+.tf2s-steamprofile-idrow .tf2s-muted {
+  flex: 0 0 auto;
+  min-width: 70px;
+}
+
+.tf2s-steamprofile-idvalue {
+  flex: 1;
+  font-family: var(--tf2s-mono);
+  font-size: 12px;
+  color: var(--tf2s-text);
+  background: var(--tf2s-surface-2);
+  border-radius: var(--tf2s-radius-sm);
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+}
+
+.tf2s-steamprofile-idstatus {
+  flex: 0 0 auto;
+  min-width: 68px;
+  font-size: 11px;
+  text-align: right;
+}

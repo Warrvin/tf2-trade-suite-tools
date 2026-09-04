@@ -1,0 +1,56 @@
+/**
+ * Панель "Отклонить все активные (N)" над списком входящих офферов — своя
+ * палитра расширения (styles/tokens.css), т.к. у Steam нативно ничего
+ * подобного тут нет (см. modules/decline-all-active/core.ts).
+ */
+
+.tf2s-daa-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--tf2s-space-2, 8px);
+  margin: 0 0 10px 0;
+  padding: 8px 10px;
+  background: var(--tf2s-surface, #1e242c);
+  border: 1px solid var(--tf2s-border, #333c48);
+  border-radius: var(--tf2s-radius-sm, 5px);
+  font-family: 'Motiva Sans', 'Segoe UI', Arial, sans-serif;
+}
+
+.tf2s-daa-btn {
+  appearance: none;
+  border: none;
+  border-radius: 3px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #1a0f08;
+  background: #e2726f;
+}
+.tf2s-daa-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.tf2s-daa-btn:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.tf2s-daa-progress {
+  font-size: 12px;
+  color: #b9c2cf;
+}
+
+.tf2s-daa-row-status {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tf2s-daa-row-status[data-kind='pending'] {
+  color: #b9c2cf;
+}
+.tf2s-daa-row-status[data-kind='ok'] {
+  color: #6fbf73;
+}
+.tf2s-daa-row-status[data-kind='error'] {
+  color: #e2726f;
+}

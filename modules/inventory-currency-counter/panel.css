@@ -1,0 +1,92 @@
+/*
+ * Встроенная (НЕ плавающая) панель — ключевое отличие от
+ * modules/wallet-summary/panel.css: там .tf2s-wallet-host стоит
+ * position:fixed поверх всей вкладки, здесь host вообще не заводится —
+ * .tf2s-panel сам укладывается в обычный поток страницы (position: static,
+ * unset у createShadowRootUi), туда, куда его вставил anchor
+ * (.filter_ctn.inventory_filters, сразу под панелью фильтров — см.
+ * entrypoints/inventory-currency.content.ts). Пользователь явно попросил
+ * "не окно поверх вкладки, а информация, встроенная в дизайн инвентаря".
+ */
+
+.tf2s-invcur {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--tf2s-space-3);
+  padding: var(--tf2s-space-2) var(--tf2s-space-3);
+  margin: var(--tf2s-space-2) 0;
+}
+
+.tf2s-invcur__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tf2s-text-faint);
+  flex: none;
+}
+
+.tf2s-invcur__status {
+  font-size: 12px;
+  color: var(--tf2s-text-dim);
+}
+.tf2s-invcur__status--error {
+  color: var(--tf2s-bad);
+}
+
+.tf2s-invcur__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tf2s-invcur__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+.tf2s-invcur__dot--keys {
+  background: var(--tf2s-q-unique);
+}
+.tf2s-invcur__dot--refined {
+  background: #b8860b;
+}
+.tf2s-invcur__dot--reclaimed {
+  background: #7a8fa6;
+}
+.tf2s-invcur__dot--scrap {
+  background: #8a8f98;
+}
+
+.tf2s-invcur__chip-value {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tf2s-text);
+}
+.tf2s-invcur__chip-label {
+  font-size: 11.5px;
+  color: var(--tf2s-text-dim);
+}
+
+.tf2s-invcur__total {
+  font-size: 12px;
+  color: var(--tf2s-accent-ink);
+  font-weight: 600;
+  padding-left: var(--tf2s-space-2);
+  border-left: 1px solid var(--tf2s-border);
+}
+
+.tf2s-invcur__hint {
+  font-size: 11px;
+  color: var(--tf2s-text-faint);
+}
+.tf2s-invcur__hint--exact {
+  color: var(--tf2s-good);
+}
+
+.tf2s-invcur__refresh {
+  margin-left: auto;
+}

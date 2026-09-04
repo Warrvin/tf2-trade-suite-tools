@@ -1,0 +1,116 @@
+.tf2s-wallet-host {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483000;
+}
+
+.tf2s-wallet {
+  width: 300px;
+  overflow: hidden;
+}
+
+.tf2s-wallet__header {
+  display: flex;
+  align-items: center;
+  gap: var(--tf2s-space-2);
+  padding: var(--tf2s-space-2) var(--tf2s-space-3);
+  background: var(--tf2s-surface-2);
+  border-bottom: 1px solid var(--tf2s-border);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
+.tf2s-wallet__header--dragging {
+  cursor: grabbing;
+}
+
+.tf2s-wallet__header button {
+  cursor: pointer;
+}
+
+.tf2s-wallet__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--tf2s-accent-ink);
+}
+
+.tf2s-wallet__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--tf2s-border);
+}
+
+.tf2s-wallet--collapsed .tf2s-wallet__body {
+  display: none;
+}
+
+.tf2s-wallet__side {
+  background: var(--tf2s-surface);
+  padding: var(--tf2s-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tf2s-wallet__side-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tf2s-text-faint);
+  margin-bottom: 2px;
+}
+
+.tf2s-wallet__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.tf2s-wallet__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tf2s-text-dim);
+}
+
+.tf2s-wallet__key::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+.tf2s-wallet__key--keys::before {
+  background: var(--tf2s-q-unique);
+}
+.tf2s-wallet__key--refined::before {
+  background: #b8860b;
+}
+.tf2s-wallet__key--reclaimed::before {
+  background: #7a8fa6;
+}
+.tf2s-wallet__key--scrap::before {
+  background: #8a8f98;
+}
+
+.tf2s-wallet__value {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tf2s-text);
+}
+
+.tf2s-wallet__status {
+  font-size: 12px;
+  color: var(--tf2s-text-dim);
+  padding: 6px 0;
+}
+.tf2s-wallet__status--error {
+  color: var(--tf2s-bad);
+}

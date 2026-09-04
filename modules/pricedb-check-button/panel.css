@@ -1,0 +1,62 @@
+/*
+ * Кнопка встраивается КАК ЕЩЁ ОДИН РЯД в группу действий карточки предмета,
+ * сразу после "View in Community Market" (и "Sell", если он есть) — см.
+ * entrypoints/inventory-pricedb.content.ts#findMountTarget (место
+ * подтверждено живой проверкой на реальном инвентаре).
+ *
+ * Стиль — приглушённый "вторичный" чип (тонкая рамка, тёмный фон), а НЕ
+ * попытка визуально слиться с родными рядами Steam впритык (это была
+ * промежуточная версия — пользователь попросил вернуть предыдущий дизайн,
+ * оставив только новое, верное место). Акцентный оранжевый — только у
+ * иконки "↗" и целиком проявляется в hover, не заливкой всей кнопки.
+ */
+
+.tf2s-pricedb-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: var(--tf2s-radius-sm);
+  border: 1px solid var(--tf2s-border);
+  background: var(--tf2s-surface-2);
+  color: var(--tf2s-text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+a.tf2s-pricedb-check:hover {
+  border-color: var(--tf2s-accent);
+  background: var(--tf2s-accent-bg);
+  color: var(--tf2s-accent-ink);
+}
+
+.tf2s-pricedb-check__icon {
+  flex: none;
+  color: var(--tf2s-accent-ink);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tf2s-pricedb-check__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tf2s-pricedb-check--pending {
+  cursor: default;
+  color: var(--tf2s-text-faint);
+  font-style: italic;
+  font-weight: 500;
+}
+.tf2s-pricedb-check--pending .tf2s-pricedb-check__icon {
+  color: var(--tf2s-text-faint);
+}

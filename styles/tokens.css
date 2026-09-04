@@ -1,0 +1,152 @@
+/**
+ * Единая дизайн-система TF2 Suite.
+ *
+ * Подключается ВНУТРИ shadow root каждого модуля (см. modules, panel.ts),
+ * поэтому переменные объявлены на классе `.tf2s-root`, а не на `:root` —
+ * так они не вытекают наружу и не конфликтуют с CSS хост-страницы (Steam,
+ * backpack.tf и т.д. используют одинаковые имена переменных внутри своих
+ * же стилей — пересечение исключено за счёт shadow DOM + скоупинга).
+ *
+ * Любой новый модуль ДОЛЖЕН использовать эти токены вместо своих цветов/
+ * отступов — это и есть требование "единый визуал для всех новых элементов".
+ */
+
+.tf2s-root {
+  --tf2s-bg: #161a20;
+  --tf2s-surface: #1e242c;
+  --tf2s-surface-2: #262e38;
+  --tf2s-border: #333c48;
+  --tf2s-text: #e7ebf2;
+  --tf2s-text-dim: #9aa4b2;
+  --tf2s-text-faint: #6b7484;
+
+  /* Акцент — strange-orange, узнаваемый цвет TF2-экономики (rgb(207,106,50)),
+     тот же оттенок, что и рамка strange-предметов у всех трёх изученных
+     расширений — сознательный выбор, чтобы UI расширения читался как
+     "родной" для TF2-трейдера с первого взгляда. */
+  --tf2s-accent: #cf6a32;
+  --tf2s-accent-ink: #ffb98a;
+  --tf2s-accent-bg: rgba(207, 106, 50, 0.16);
+
+  --tf2s-good: #6fbf73;
+  --tf2s-good-bg: rgba(111, 191, 115, 0.16);
+  --tf2s-bad: #e2726f;
+  --tf2s-bad-bg: rgba(226, 114, 111, 0.16);
+  /* Предупреждение (известное ограничение функции, не ошибка) — используется
+     карточками функций на странице настроек (см. components/FeatureToggle.vue),
+     тот же жёлтый, что и акцент steamMarket в utils/registry.ts#SITE_GROUPS,
+     чтобы не заводить ещё один несвязанный оттенок в палитре. */
+  --tf2s-warn: #e0b400;
+  --tf2s-warn-bg: rgba(224, 180, 0, 0.14);
+
+  /* Цвета качества предметов TF2 — используются модулями атрибутов
+     предметов (unusual/strange/vintage и т.д.), единая палитра на всё
+     расширение вместо разных hex-кодов в каждом модуле. */
+  --tf2s-q-unusual: #8650ac;
+  --tf2s-q-strange: #cf6a32;
+  --tf2s-q-vintage: #476291;
+  --tf2s-q-genuine: #4d7455;
+  --tf2s-q-collectors: #aa0000;
+  --tf2s-q-haunted: #38f3ab;
+  --tf2s-q-decorated: #fafafa;
+  --tf2s-q-unique: #ffd700;
+
+  --tf2s-radius-sm: 5px;
+  --tf2s-radius: 9px;
+  --tf2s-radius-lg: 14px;
+  --tf2s-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --tf2s-space-1: 4px;
+  --tf2s-space-2: 8px;
+  --tf2s-space-3: 12px;
+  --tf2s-space-4: 16px;
+
+  /* Стек шрифтов Steam — UI расширения визуально сливается со страницей,
+     на которую оно встраивается, вместо системного шрифта по умолчанию. */
+  --tf2s-font: 'Motiva Sans', 'Segoe UI', Arial, sans-serif;
+  --tf2s-mono: 'Consolas', 'SFMono-Regular', Menlo, monospace;
+
+  all: initial;
+  display: block;
+  font-family: var(--tf2s-font);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--tf2s-text);
+  box-sizing: border-box;
+}
+.tf2s-root *,
+.tf2s-root *::before,
+.tf2s-root *::after {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.tf2s-panel {
+  background: var(--tf2s-surface);
+  border: 1px solid var(--tf2s-border);
+  border-radius: var(--tf2s-radius);
+  box-shadow: var(--tf2s-shadow);
+}
+
+.tf2s-btn {
+  appearance: none;
+  border: 1px solid var(--tf2s-border);
+  background: var(--tf2s-surface-2);
+  color: var(--tf2s-text);
+  border-radius: var(--tf2s-radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+.tf2s-btn:hover {
+  filter: brightness(1.15);
+}
+.tf2s-btn:active {
+  transform: translateY(1px);
+}
+.tf2s-btn--accent {
+  background: var(--tf2s-accent);
+  border-color: var(--tf2s-accent);
+  color: #1a0f08;
+}
+.tf2s-btn--icon {
+  padding: 2px 7px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.tf2s-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--tf2s-accent);
+  color: #1a0f08;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tf2s-link {
+  color: var(--tf2s-accent-ink);
+  text-decoration: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--tf2s-accent-ink) 50%, transparent);
+}
+.tf2s-link:hover {
+  border-bottom-style: solid;
+}
+
+.tf2s-muted {
+  color: var(--tf2s-text-dim);
+}
+
+.tf2s-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
