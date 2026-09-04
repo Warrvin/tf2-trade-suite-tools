@@ -46,9 +46,6 @@ It isn't one big monolithic script. It's **22 independent modules**, each with i
 the site they run on. Turn on only what you need — a currency summary in the trade window, item-attribute icons in
 your inventory, a price-check button on backpack.tf — and leave the rest off.
 
-Everything the extension draws on a page shares one visual language (the same color tokens as TF2's own item
-rarities), so it always looks like it belongs there instead of a random userscript bolted on top.
-
 ### ✨ Features
 
 22 modules across 8 sites. Click a group below to expand it.
@@ -205,9 +202,6 @@ Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrad
 Это не один большой монолитный скрипт, а **22 независимых модуля**, каждый со своим тумблером, сгруппированных по
 сайту, на котором они работают. Включайте только то, что нужно — сводку валюты в окне оффера, иконки атрибутов в
 инвентаре, кнопку проверки цены на backpack.tf — а остальное держите выключенным.
-
-Всё, что расширение рисует на странице, использует один визуальный язык (те же цветовые токены, что и у качеств
-предметов TF2), поэтому оно всегда выглядит органично, а не как случайный юзерскрипт поверх сайта.
 
 ### ✨ Функции
 
