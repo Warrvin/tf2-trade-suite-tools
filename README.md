@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" width="760" alt="Wallet summary, quick item add and per-side totals in the trade offer window" />
+  <img src="screenshots/hero.png" width="760" alt="Wallet summary, quick item add and per-side totals in the trade offer window" />
 </p>
 
 <p align="center">
@@ -144,35 +144,35 @@ your inventory, a price-check button on backpack.tf — and leave the rest off.
 
 <p align="center">
   <b>Inventory — item attributes, live currency counter, PriceDB.io check button</b><br/><br/>
-  <img src="docs/screenshots/inventory-overview.png" width="640" alt="Steam inventory with item attributes, currency counter and PriceDB.io button" />
+  <img src="screenshots/inventory-overview.png" width="640" alt="Steam inventory with item attributes, currency counter and PriceDB.io button" />
 </p>
 
 <p align="center">
   <b>Item attributes on the Steam Community Market — classic and beta design</b><br/><br/>
-  <img src="docs/screenshots/market-item-attributes-1.png" width="220" alt="Market attributes, classic list design" />
-  <img src="docs/screenshots/market-item-attributes-2.png" width="220" alt="Market attributes, beta grid design" />
-  <img src="docs/screenshots/market-item-attributes-3.png" width="220" alt="Market attributes, beta grid design, second item" />
-  <img src="docs/screenshots/market-item-attributes-4.png" width="220" alt="Market attributes, classic list design, second item" />
+  <img src="screenshots/market-item-attributes-1.png" width="220" alt="Market attributes, classic list design" />
+  <img src="screenshots/market-item-attributes-2.png" width="220" alt="Market attributes, beta grid design" />
+  <img src="screenshots/market-item-attributes-3.png" width="220" alt="Market attributes, beta grid design, second item" />
+  <img src="screenshots/market-item-attributes-4.png" width="220" alt="Market attributes, classic list design, second item" />
 </p>
 
 <p align="center">
   <b>backpack.tf — killstreak tier switcher</b><br/><br/>
-  <img src="docs/screenshots/bptf-ks-tier-buttons.png" width="640" alt="Killstreak tier switcher on backpack.tf" />
+  <img src="screenshots/bptf-ks-tier-buttons.png" width="640" alt="Killstreak tier switcher on backpack.tf" />
 </p>
 
 <p align="center">
   <b>scrap.tf — item-click links popup</b><br/><br/>
-  <img src="docs/screenshots/scrap-item-modal.png" width="480" alt="Item-click links popup on scrap.tf" />
+  <img src="screenshots/scrap-item-modal.png" width="480" alt="Item-click links popup on scrap.tf" />
 </p>
 
 <p align="center">
   <b>Steam profile — links & SteamID</b><br/><br/>
-  <img src="docs/screenshots/steam-profile-links.png" width="480" alt="Profile links and SteamID on a Steam profile" />
+  <img src="screenshots/steam-profile-links.png" width="480" alt="Profile links and SteamID on a Steam profile" />
 </p>
 
 <p align="center">
   <b>The extension's own settings page</b><br/><br/>
-  <img src="docs/screenshots/options-page.png" width="640" alt="TF2 Trade Suite Tools settings page" />
+  <img src="screenshots/options-page.png" width="640" alt="TF2 Trade Suite Tools settings page" />
 </p>
 
 ### ⚙️ Installation
@@ -336,35 +336,35 @@ Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrad
 
 <p align="center">
   <b>Инвентарь — атрибуты предметов, живой счётчик валюты, кнопка проверки на PriceDB.io</b><br/><br/>
-  <img src="docs/screenshots/inventory-overview.png" width="640" alt="Инвентарь Steam с атрибутами предметов, счётчиком валюты и кнопкой PriceDB.io" />
+  <img src="screenshots/inventory-overview.png" width="640" alt="Инвентарь Steam с атрибутами предметов, счётчиком валюты и кнопкой PriceDB.io" />
 </p>
 
 <p align="center">
   <b>Атрибуты предметов в листингах Steam Market — классический и бета-дизайн</b><br/><br/>
-  <img src="docs/screenshots/market-item-attributes-1.png" width="220" alt="Атрибуты Market, классический список" />
-  <img src="docs/screenshots/market-item-attributes-2.png" width="220" alt="Атрибуты Market, бета-сетка" />
-  <img src="docs/screenshots/market-item-attributes-3.png" width="220" alt="Атрибуты Market, бета-сетка, другой предмет" />
-  <img src="docs/screenshots/market-item-attributes-4.png" width="220" alt="Атрибуты Market, классический список, другой предмет" />
+  <img src="screenshots/market-item-attributes-1.png" width="220" alt="Атрибуты Market, классический список" />
+  <img src="screenshots/market-item-attributes-2.png" width="220" alt="Атрибуты Market, бета-сетка" />
+  <img src="screenshots/market-item-attributes-3.png" width="220" alt="Атрибуты Market, бета-сетка, другой предмет" />
+  <img src="screenshots/market-item-attributes-4.png" width="220" alt="Атрибуты Market, классический список, другой предмет" />
 </p>
 
 <p align="center">
   <b>backpack.tf — переключение килстрик-тиров</b><br/><br/>
-  <img src="docs/screenshots/bptf-ks-tier-buttons.png" width="640" alt="Переключение килстрик-тиров на backpack.tf" />
+  <img src="screenshots/bptf-ks-tier-buttons.png" width="640" alt="Переключение килстрик-тиров на backpack.tf" />
 </p>
 
 <p align="center">
   <b>scrap.tf — окошко ссылок по клику на предмет</b><br/><br/>
-  <img src="docs/screenshots/scrap-item-modal.png" width="480" alt="Окошко ссылок по клику на предмет на scrap.tf" />
+  <img src="screenshots/scrap-item-modal.png" width="480" alt="Окошко ссылок по клику на предмет на scrap.tf" />
 </p>
 
 <p align="center">
   <b>Профиль Steam — ссылки и SteamID</b><br/><br/>
-  <img src="docs/screenshots/steam-profile-links.png" width="480" alt="Ссылки и SteamID на профиле Steam" />
+  <img src="screenshots/steam-profile-links.png" width="480" alt="Ссылки и SteamID на профиле Steam" />
 </p>
 
 <p align="center">
   <b>Страница настроек самого расширения</b><br/><br/>
-  <img src="docs/screenshots/options-page.png" width="640" alt="Страница настроек TF2 Trade Suite Tools" />
+  <img src="screenshots/options-page.png" width="640" alt="Страница настроек TF2 Trade Suite Tools" />
 </p>
 
 ### ⚙️ Установка
