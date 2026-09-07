@@ -20,6 +20,9 @@
 </p>
 
 <p align="center">
+  <a href="https://addons.mozilla.org/en/firefox/addon/tf2-trade-suite-tools/">
+    <img src="https://img.shields.io/badge/Firefox%20Add--ons-Get%20the%20extension-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Get TF2 Trade Suite Tools on Firefox Add-ons" />
+  </a>
   <a href="https://steamcommunity.com/profiles/76561198038152985/">
     <img src="https://img.shields.io/badge/Steam-Warrvin-171a21?style=flat-square&logo=steam&logoColor=white" alt="Steam profile: Warrvin" />
   </a>
@@ -49,6 +52,9 @@ Steam inventory, the Steam Community Market, backpack.tf, scrap.tf, and stntradi
 It isn't one big monolithic script. It's **22 independent modules**, each with its own on/off switch, grouped by
 the site they run on. Turn on only what you need — a currency summary in the trade window, item-attribute icons in
 your inventory, a price-check button on backpack.tf — and leave the rest off.
+
+Everything the extension draws on a page shares one visual language (the same color tokens as TF2's own item
+rarities), so it always looks like it belongs there instead of a random userscript bolted on top.
 
 ### ✨ Features
 
@@ -177,8 +183,11 @@ your inventory, a price-check button on backpack.tf — and leave the rest off.
 
 ### ⚙️ Installation
 
-The extension isn't published on the Chrome Web Store or Firefox AMO yet, so for now it's installed manually — it
-takes about a minute.
+**Firefox**: install straight from [Firefox Add-ons](https://addons.mozilla.org/en/firefox/addon/tf2-trade-suite-tools/) —
+one click, no manual steps, and it updates itself.
+
+The extension isn't published on the Chrome Web Store or Opera add-ons yet, so on those browsers it's installed
+manually for now — it takes about a minute.
 
 **Option A — from a release build**
 
@@ -241,6 +250,9 @@ Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrad
 Это не один большой монолитный скрипт, а **22 независимых модуля**, каждый со своим тумблером, сгруппированных по
 сайту, на котором они работают. Включайте только то, что нужно — сводку валюты в окне оффера, иконки атрибутов в
 инвентаре, кнопку проверки цены на backpack.tf — а остальное держите выключенным.
+
+Всё, что расширение рисует на странице, использует один визуальный язык (те же цветовые токены, что и у качеств
+предметов TF2), поэтому оно всегда выглядит органично, а не как случайный юзерскрипт поверх сайта.
 
 ### ✨ Функции
 
@@ -369,8 +381,11 @@ Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrad
 
 ### ⚙️ Установка
 
-Расширение пока не опубликовано в Chrome Web Store или Firefox AMO, так что ставится вручную — это займёт около
-минуты.
+**Firefox**: проще всего поставить прямо из [Firefox Add-ons](https://addons.mozilla.org/en/firefox/addon/tf2-trade-suite-tools/) —
+один клик, без ручных шагов, и расширение будет обновляться само.
+
+В Chrome Web Store и Opera add-ons расширение пока не опубликовано, так что для этих браузеров ставится вручную —
+это займёт около минуты.
 
 **Вариант A — из готовой сборки**
 
