@@ -9,6 +9,7 @@ import { ATTRIBUTES_FEATURE_ID } from '../modules/trade-item-attributes/types';
 import { INVENTORY_ATTRIBUTES_FEATURE_ID } from '../modules/inventory-item-attributes/types';
 import { MARKET_ATTRIBUTES_FEATURE_ID } from '../modules/market-item-attributes/types';
 import { DEFAULT_TRADE_SUMMARY_MODE, TRADE_SUMMARY_FEATURE_ID, TRADE_SUMMARY_MODE_OPTION_KEY, TradeSummaryMode } from '../modules/trade-item-summary/types';
+import { DEFAULT_METAL_BUTTON_MODE, METAL_BUTTON_MODE_OPTION_KEY, MetalButtonMode, QUICK_ADD_FEATURE_ID } from '../modules/quick-add-items/types';
 import { SCRAP_ITEM_MODAL_FEATURE_ID } from '../modules/scrap-item-modal/types';
 import {
   DEFAULT_SCRAP_MODAL_TRIGGER,
@@ -43,6 +44,11 @@ const UI = {
     priced: 'С ценами PriceDB.io',
     summaryModeHint:
       '«Просто число» — сколько НЕ-валютных предметов в оффере, без цены, без сети. «С ценами PriceDB.io» — плюс их суммарная оценка (цена продажи с pricedb.io, публичная база без ключа) отдельно в keys и в ref; предметы, которых нет в базе, по-прежнему считаются числом. Валюта (keys/ref/rec/scrap) считается одинаково в обоих режимах.',
+    metalModeLabel: 'Кнопка «Металл»:',
+    metalModeCombined: 'Металл (по сумме)',
+    metalModeSplit: 'Реф / Рек / Скр (по счёту)',
+    metalModeHint:
+      '«Металл (по сумме)» — одна кнопка, добавляет металл на сумму в ref, жадно разменивая сверху вниз (Refined → Reclaimed → Scrap) — удобно для округлой цены. «Реф / Рек / Скр (по счёту)» — три кнопки вместо одной, каждая добавляет ровно столько штук ОДНОГО номинала металла, сколько введено в поле количества — как кнопка «Ключи», по счёту, а не по стоимости.',
     triggerLabel: 'Комбинация активации:',
     recording: 'Нажмите кнопку мыши (можно с Ctrl/Alt/Shift)…',
     record: 'Записать',
@@ -64,6 +70,11 @@ const UI = {
     priced: 'With PriceDB.io prices',
     summaryModeHint:
       '"Plain count" — how many non-currency items are in the offer, no price, no network. "With PriceDB.io prices" — plus their combined estimate (sell price from pricedb.io, a public database, no key needed) shown separately in keys and ref; items not in the database still count as a number. Currency (keys/ref/rec/scrap) is counted the same in both modes.',
+    metalModeLabel: '"Metal" button:',
+    metalModeCombined: 'Metal (by amount)',
+    metalModeSplit: 'Ref / Rec / Scr (by count)',
+    metalModeHint:
+      '"Metal (by amount)" — one button, adds metal worth that many ref, greedily breaking it down top to bottom (Refined → Reclaimed → Scrap) — handy for a round price. "Ref / Rec / Scr (by count)" — three buttons instead of one, each adds exactly that many items of ONE metal denomination — like the "Keys" button, by count rather than value.',
     triggerLabel: 'Activation combo:',
     recording: 'Press a mouse button (Ctrl/Alt/Shift optional)…',
     record: 'Record',
@@ -124,6 +135,24 @@ onMounted(async () => {
 async function setSummaryMode(mode: TradeSummaryMode) {
   summaryMode.value = mode;
   await setModuleOption(props.module.id, TRADE_SUMMARY_MODE_OPTION_KEY, mode);
+}
+
+// Опция режима кнопки «Металл» модуля quick-add-items ('combined' — одна
+// кнопка по сумме, 'split' — «Реф»/«Рек»/«Скр» по счёту, см.
+// utils/metal-button-mode.ts) — по прямой просьбе пользователя вынесена
+// сюда с options-страницы вместо внутрипанельного переключателя (тот же
+// UI-паттерн, что и summaryMode выше).
+const hasMetalModeOption = props.module.id === QUICK_ADD_FEATURE_ID;
+const metalMode = ref<MetalButtonMode>(DEFAULT_METAL_BUTTON_MODE);
+
+onMounted(async () => {
+  if (!hasMetalModeOption) return;
+  metalMode.value = await getModuleOption<MetalButtonMode>(props.module.id, METAL_BUTTON_MODE_OPTION_KEY, DEFAULT_METAL_BUTTON_MODE);
+});
+
+async function setMetalMode(mode: MetalButtonMode) {
+  metalMode.value = mode;
+  await setModuleOption(props.module.id, METAL_BUTTON_MODE_OPTION_KEY, mode);
 }
 
 // Настраиваемая комбинация активации scrap-item-modal — по прямой просьбе
@@ -254,6 +283,29 @@ async function resetTrigger() {
         </button>
       </div>
       <p class="tf2s-feature__option-hint">{{ ui.summaryModeHint }}</p>
+    </div>
+
+    <div v-if="hasMetalModeOption && enabled" class="tf2s-feature__option">
+      <span class="tf2s-feature__option-label">{{ ui.metalModeLabel }}</span>
+      <div class="tf2s-segmented">
+        <button
+          type="button"
+          class="tf2s-segmented__btn"
+          :class="{ 'tf2s-segmented__btn--active': metalMode === 'combined' }"
+          @click="setMetalMode('combined')"
+        >
+          {{ ui.metalModeCombined }}
+        </button>
+        <button
+          type="button"
+          class="tf2s-segmented__btn"
+          :class="{ 'tf2s-segmented__btn--active': metalMode === 'split' }"
+          @click="setMetalMode('split')"
+        >
+          {{ ui.metalModeSplit }}
+        </button>
+      </div>
+      <p class="tf2s-feature__option-hint">{{ ui.metalModeHint }}</p>
     </div>
 
     <div v-if="hasTriggerOption && enabled" class="tf2s-feature__option">

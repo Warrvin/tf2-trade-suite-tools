@@ -1,16 +1,19 @@
 import { requestFromMain } from '../../utils/bridge';
 import type { Locale } from '../../utils/i18n';
-import { QUICK_ADD_CHANNEL, QuickAddMode, QuickAddRequest, QuickAddResponse } from './types';
+import { DEFAULT_METAL_BUTTON_MODE, MetalButtonMode, QUICK_ADD_CHANNEL, QuickAddMode, QuickAddRequest, QuickAddResponse } from './types';
 
 const UI = {
   ru: {
     amountPlaceholder: 'кол-во / ref',
-    amountTitle: 'Количество предметов (для «Металл» — стоимость в ref)',
+    amountTitle: 'Количество предметов (для «Металл» — стоимость в ref; для «Реф»/«Рек»/«Скр» — количество штук)',
     indexPlaceholder: 'индекс',
     indexTitle: 'С какой позиции начинать (можно отрицательный — с конца)',
     add: 'Добавить',
     keys: 'Ключи',
     metal: 'Металл',
+    refined: 'Реф',
+    reclaimed: 'Рек',
+    scrap: 'Скр',
     recent: 'Недавние',
     clearMe: 'Очистить мои',
     clearThem: 'Очистить партнёра',
@@ -22,12 +25,15 @@ const UI = {
   },
   en: {
     amountPlaceholder: 'qty / ref',
-    amountTitle: 'Item count (for "Metal" — the value in ref)',
+    amountTitle: 'Item count (for "Metal" — the value in ref; for "Ref"/"Rec"/"Scr" — the count)',
     indexPlaceholder: 'index',
     indexTitle: 'Which position to start from (negative counts from the end)',
     add: 'Add',
     keys: 'Keys',
     metal: 'Metal',
+    refined: 'Ref',
+    reclaimed: 'Rec',
+    scrap: 'Scr',
     recent: 'Recent',
     clearMe: 'Clear mine',
     clearThem: "Clear partner's",
@@ -53,24 +59,63 @@ const UI = {
  * Есть текстовые поля, которые пользователь АКТИВНО печатает — полный
  * re-render на каждое нажатие клавиши стёр бы курсор/фокус. Поэтому разметка
  * строится ОДИН РАЗ при монтировании, а дальше меняются только точечные вещи
- * (сообщение статуса) через прямые ссылки на уже существующие узлы, а не
- * через повторный innerHTML.
+ * (сообщение статуса, слот кнопки «Металл») через прямые ссылки на уже
+ * существующие узлы, а не через повторный innerHTML всей панели — сами поля
+ * ввода при переключении режима металла не трогаются, фокус/курсор целы.
+ *
+ * РЕЖИМ КНОПКИ «МЕТАЛЛ» (по прямой просьбе пользователя): «Металл» добавляет
+ * металл НА СУММУ `amount` ref, жадным разменом сверху вниз (см.
+ * utils/trade-offer.ts#getItemsForMetal) — удобно для округлой цены, но не
+ * годится, когда нужно добавить РОВНО N Reclaimed/Scrap, а не "что-то на эту
+ * сумму". Режим 'split' (см. utils/metal-button-mode.ts) меняет местами
+ * «Металл» на три кнопки «Реф»/«Рек»/«Скр» — каждая добавляет РОВНО `amount`
+ * штук одного конкретного номинала, тем же способом, что и «Ключи» (по
+ * счёту, не по стоимости, см. utils/trade-offer.ts#findMetalByKind). Только
+ * один из двух видов виден одновременно — они делят одно и то же место в
+ * разметке (см. renderMetalSlot ниже).
+ *
+ * Выбор режима живёт на options-странице (components/FeatureToggle.vue,
+ * тот же паттерн, что и режим trade-item-summary/уровень детализации
+ * иконок) — не здесь: панель только ПРИМЕНЯЕТ текущий режим (initialMode
+ * при монтировании, setMetalMode при живой смене, см. entrypoint
+ * tradeoffer-quickadd.content.ts) и не хранит собственного переключателя.
  */
-export function mountQuickAddPanel(container: HTMLElement, locale: Locale): { destroy: () => void } {
+export function mountQuickAddPanel(
+  container: HTMLElement,
+  locale: Locale,
+  initialMode: MetalButtonMode = DEFAULT_METAL_BUTTON_MODE,
+): { destroy: () => void; setMetalMode: (mode: MetalButtonMode) => void } {
   const root = document.createElement('div');
   root.className = 'tf2s-root';
   container.appendChild(root);
 
+  /** Разметка одного поля с кастомным спиннером — заменяет нативные стрелки
+   *  браузера (см. panel.css: нативные скрыты через ::-webkit-*-spin-button/
+   *  -moz-appearance) на пару треугольников в стиле остальной панели —
+   *  токены/цвета те же, что у остальных элементов (--tf2s-*, см.
+   *  styles/tokens.css), а не голубые/серые нативные квадратики ОС/браузера. */
+  function spinnerField(field: 'amount' | 'index', placeholder: string, title: string, min: string, step: string): string {
+    return `
+      <span class="tf2s-spinner">
+        <input class="tf2s-quickadd__input" type="number" min="${min}" step="${step}" placeholder="${placeholder}" data-field="${field}" title="${title}"/>
+        <span class="tf2s-spinner__ctrl">
+          <button type="button" class="tf2s-spinner__btn" data-spin="${field}" data-dir="1" tabindex="-1" aria-label="+">▲</button>
+          <button type="button" class="tf2s-spinner__btn" data-spin="${field}" data-dir="-1" tabindex="-1" aria-label="-">▼</button>
+        </span>
+      </span>
+    `;
+  }
+
   root.innerHTML = `
     <div class="tf2s-panel tf2s-quickadd">
       <div class="tf2s-quickadd__row">
-        <input class="tf2s-quickadd__input" type="number" min="0" step="any" placeholder="${UI[locale].amountPlaceholder}" data-field="amount" title="${UI[locale].amountTitle}"/>
-        <input class="tf2s-quickadd__input" type="number" min="0" placeholder="${UI[locale].indexPlaceholder}" data-field="index" title="${UI[locale].indexTitle}"/>
+        ${spinnerField('amount', UI[locale].amountPlaceholder, UI[locale].amountTitle, '0', 'any')}
+        ${spinnerField('index', UI[locale].indexPlaceholder, UI[locale].indexTitle, '0', '1')}
       </div>
       <div class="tf2s-quickadd__row">
         <button class="tf2s-btn tf2s-btn--accent tf2s-quickadd__btn" data-action="ITEMS">${UI[locale].add}</button>
         <button class="tf2s-btn tf2s-quickadd__btn" data-action="KEYS">${UI[locale].keys}</button>
-        <button class="tf2s-btn tf2s-quickadd__btn" data-action="METAL">${UI[locale].metal}</button>
+        <span class="tf2s-quickadd__metal-slot" data-metal-slot></span>
         <button class="tf2s-btn tf2s-quickadd__btn" data-action="RECENT">${UI[locale].recent}</button>
       </div>
       <div class="tf2s-quickadd__row">
@@ -84,9 +129,45 @@ export function mountQuickAddPanel(container: HTMLElement, locale: Locale): { de
   const amountInput = root.querySelector<HTMLInputElement>('[data-field="amount"]')!;
   const indexInput = root.querySelector<HTMLInputElement>('[data-field="index"]')!;
   const messageEl = root.querySelector<HTMLElement>('[data-message]')!;
+  const metalSlot = root.querySelector<HTMLElement>('[data-metal-slot]')!;
 
   let destroyed = false;
   let messageTimer: number | undefined;
+
+  /** Текущий режим (см. utils/metal-button-mode.ts) — приходит СНАРУЖИ
+   *  (initialMode при монтировании, setMetalMode при живой смене на
+   *  options-странице), панель сама его не переключает и не хранит выбор. */
+  let metalMode: MetalButtonMode = initialMode;
+
+  function renderMetalSlot() {
+    metalSlot.innerHTML =
+      metalMode === 'combined'
+        ? `<button class="tf2s-btn tf2s-quickadd__btn" data-action="METAL">${UI[locale].metal}</button>`
+        : `
+            <button class="tf2s-btn tf2s-quickadd__btn" data-action="REFINED">${UI[locale].refined}</button>
+            <button class="tf2s-btn tf2s-quickadd__btn" data-action="RECLAIMED">${UI[locale].reclaimed}</button>
+            <button class="tf2s-btn tf2s-quickadd__btn" data-action="SCRAP">${UI[locale].scrap}</button>
+          `;
+  }
+  renderMetalSlot();
+
+  /** Клик по кастомной стрелке спиннера — эмулирует нативный шаг браузерного
+   *  number-инпута (тот же `step`, то же зажатие снизу по `min`), просто
+   *  своей отрисовкой (см. spinnerField выше). */
+  root.querySelectorAll<HTMLButtonElement>('[data-spin]').forEach((spinBtn) => {
+    spinBtn.addEventListener('click', () => {
+      const field = spinBtn.dataset.spin as 'amount' | 'index';
+      const input = field === 'amount' ? amountInput : indexInput;
+      const dir = Number(spinBtn.dataset.dir);
+      const step = parseFloat(input.step) || 1;
+      const min = input.min !== '' ? parseFloat(input.min) : undefined;
+      const current = parseFloat(input.value) || 0;
+      let next = current + dir * step;
+      if (min !== undefined) next = Math.max(min, next);
+      input.value = String(Math.round(next * 100) / 100);
+      input.focus();
+    });
+  });
 
   function showMessage(text: string, kind: 'info' | 'error') {
     window.clearTimeout(messageTimer);
@@ -125,6 +206,9 @@ export function mountQuickAddPanel(container: HTMLElement, locale: Locale): { de
       case 'KEYS':
         return UI[locale].notEnoughKeys;
       case 'METAL':
+      case 'REFINED':
+      case 'RECLAIMED':
+      case 'SCRAP':
         return UI[locale].notEnoughMetal;
       default:
         return UI[locale].notEnoughItems;
@@ -174,6 +258,11 @@ export function mountQuickAddPanel(container: HTMLElement, locale: Locale): { de
       destroyed = true;
       window.clearTimeout(messageTimer);
       root.remove();
+    },
+    setMetalMode: (mode: MetalButtonMode) => {
+      if (destroyed || mode === metalMode) return;
+      metalMode = mode;
+      renderMetalSlot();
     },
   };
 }

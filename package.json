@@ -1,6 +1,6 @@
 {
   "name": "tf2-trade-suite-tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TF2 Trade Suite Tools — единое расширение для трейда в Team Fortress 2 с переключаемыми модулями (Chrome/Firefox/Edge)",
   "private": true,
   "type": "module",

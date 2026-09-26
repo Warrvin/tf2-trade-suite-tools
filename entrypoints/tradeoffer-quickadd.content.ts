@@ -1,9 +1,9 @@
 import { defineContentScript } from 'wxt/sandbox';
 import { createShadowRootUi } from 'wxt/client';
-import { getLocale, isFeatureEnabled, watchSettings } from '../utils/settings';
+import { getLocale, getModuleOption, isFeatureEnabled, watchSettings } from '../utils/settings';
 import type { Locale } from '../utils/i18n';
 import { mountQuickAddPanel } from '../modules/quick-add-items/panel';
-import { QUICK_ADD_FEATURE_ID } from '../modules/quick-add-items/types';
+import { DEFAULT_METAL_BUTTON_MODE, METAL_BUTTON_MODE_OPTION_KEY, MetalButtonMode, QUICK_ADD_FEATURE_ID } from '../modules/quick-add-items/types';
 import tokensCss from '../styles/tokens.css?inline';
 import panelCss from '../modules/quick-add-items/panel.css?inline';
 
@@ -22,8 +22,9 @@ export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
   cssInjectionMode: 'ui',
   async main(ctx) {
-    let mountedHandle: { destroy: () => void } | null = null;
+    let mountedHandle: { destroy: () => void; setMetalMode: (mode: MetalButtonMode) => void } | null = null;
     let locale: Locale = await getLocale();
+    let metalMode = await getModuleOption<MetalButtonMode>(QUICK_ADD_FEATURE_ID, METAL_BUTTON_MODE_OPTION_KEY, DEFAULT_METAL_BUTTON_MODE);
 
     const ui = await createShadowRootUi(ctx, {
       name: 'tf2suite-quickadd-panel',
@@ -32,7 +33,7 @@ export default defineContentScript({
       append: 'last',
       css: tokensCss + panelCss,
       onMount: (container) => {
-        mountedHandle = mountQuickAddPanel(container, locale);
+        mountedHandle = mountQuickAddPanel(container, locale, metalMode);
         return mountedHandle;
       },
       onRemove: () => {
@@ -44,14 +45,19 @@ export default defineContentScript({
     let enabled = await isFeatureEnabled(QUICK_ADD_FEATURE_ID);
     if (enabled) ui.mount();
 
-    // Смена локали — тем же путём, что и вкл/выкл (полный remove+mount, см.
-    // utils/i18n.ts за общим объяснением этого решения).
+    // Смена локали/тумблера — тем же путём, что и раньше (полный remove+mount,
+    // см. utils/i18n.ts за общим объяснением). Смена РЕЖИМА металла — на
+    // лету через setMetalMode, без remove+mount (тот же паттерн, что и
+    // setMode у trade-item-summary, см. entrypoints/tradeoffer-summary.content.ts).
     const stopWatching = watchSettings((settings) => {
       const shouldBeEnabled = settings.features[QUICK_ADD_FEATURE_ID] ?? false;
+      const nextMetalMode = (settings.moduleOptions[QUICK_ADD_FEATURE_ID]?.[METAL_BUTTON_MODE_OPTION_KEY] as MetalButtonMode | undefined) ?? DEFAULT_METAL_BUTTON_MODE;
+
       if (shouldBeEnabled !== enabled) {
         enabled = shouldBeEnabled;
         if (enabled) {
           locale = settings.locale;
+          metalMode = nextMetalMode;
           ui.mount();
         } else {
           ui.remove();
@@ -60,8 +66,14 @@ export default defineContentScript({
       }
       if (enabled && settings.locale !== locale) {
         locale = settings.locale;
+        metalMode = nextMetalMode;
         ui.remove();
         ui.mount();
+        return;
+      }
+      if (nextMetalMode !== metalMode) {
+        metalMode = nextMetalMode;
+        mountedHandle?.setMetalMode(metalMode);
       }
     });
     ctx.onInvalidated(stopWatching);

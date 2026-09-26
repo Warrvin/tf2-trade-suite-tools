@@ -158,6 +158,44 @@ function getCurrentCurrency(win: TradeOfferWindow, isYou: boolean): { keys: numb
 }
 
 /**
+ * Сколько валюты ДОСТУПНО для добавления в оффер прямо сейчас — то же, что
+ * и getCurrentCurrency, но считает НЕ то, что уже лежит в слотах оффера, а
+ * то, что ЕЩЁ можно оттуда взять: весь инвентарь этой стороны за вычетом
+ * уже добавленных в слоты ассетов (см. getSlotAssetIds в utils/trade-offer.ts
+ * — тот же набор "уже использовано", которым пользуется pickItemsForSide,
+ * чтобы не предлагать дважды один и тот же предмет).
+ *
+ * Нужна ТОЛЬКО для проверки нехватки ниже (см. addListingPrice) — в отличие
+ * от getCurrentCurrency (что уже В оффере), это "что ЕЩЁ есть в инвентаре
+ * и можно добавить".
+ */
+function countAvailableCurrency(win: TradeOfferWindow, isYou: boolean): { keys: number; metalScrap: number } {
+  const inventory = getInventory(win, isYou);
+  const addedIds = getSlotAssetIds(isYou);
+  let keys = 0;
+  let metalScrap = 0;
+
+  for (const id of Object.keys(inventory)) {
+    if (addedIds.has(id)) continue;
+    const name = inventory[id]?.market_hash_name;
+    if (!name) continue;
+
+    if (name === 'Mann Co. Supply Crate Key') {
+      keys++;
+      continue;
+    }
+    for (const kind of ['refined', 'reclaimed', 'scrap'] as const) {
+      if (name === METAL_NAME_BY_KIND[kind]) {
+        metalScrap += METAL_SCRAP_VALUE[kind];
+        break;
+      }
+    }
+  }
+
+  return { keys, metalScrap };
+}
+
+/**
  * Добавляет валюту по цене объявления — портировано из `addListingPrice`/
  * `addCurrencies`. `isYou`: см. ListingIntent в types.ts — при объявлении на
  * продажу (1) платим МЫ (предмет уже добавлен из партнёра выше), при
@@ -214,6 +252,33 @@ async function addListingPrice(win: TradeOfferWindow, listingIntent: ListingInte
   const neededScrap = Math.max(0, targetScrap - current.metalScrap);
 
   if (neededKeys === 0 && neededScrap === 0) return true; // уже полностью добавлено — см. комментарий выше
+
+  /**
+   * ИСПРАВЛЕНО (баг-репорт пользователя): если валюты для полной цены
+   * объявления НЕ ХВАТАЕТ ЦЕЛИКОМ, не добавлять её ЧАСТИЧНО — предмет по
+   * ссылке (for_item/findOwnItemByName) при этом всё равно добавляется как
+   * обычно, эта проверка касается ТОЛЬКО валюты.
+   *
+   * Раньше при нехватке функция всё равно клала в оффер всё, что нашла
+   * (findKeys/getItemsForMetalByScrap просто берут сколько есть, до
+   * `amountToAdd`), даже если это заведомо меньше нужного — а автоопрос
+   * (см. panel.ts#pollAddPrice) повторял попытку до 20 раз, каждый раз
+   * пытаясь добавить ещё, до итогового тайм-аута с ошибкой. Результат —
+   * реальная валюта уже ушла в слоты оффера, хотя сделка всё равно не
+   * могла состояться по этой цене целиком.
+   *
+   * Проверяем ТОЛЬКО свою сторону (isYou): именно тогда валюта берётся из
+   * инвентаря ПОЛЬЗОВАТЕЛЯ (см. прямую просьбу — "чтобы не добавляло из
+   * моего инвентаря"). Когда платит партнёр (isYou === false), инвентарь,
+   * из которого берётся валюта, не наш — частичное добавление там такого
+   * риска не несёт, поведение для этого случая не меняется.
+   */
+  if (isYou) {
+    const available = countAvailableCurrency(win, true);
+    if (available.keys < neededKeys || available.metalScrap < neededScrap) {
+      return false;
+    }
+  }
 
   const elements: HTMLElement[] = [];
 

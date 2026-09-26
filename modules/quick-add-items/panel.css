@@ -23,16 +23,36 @@
   flex-wrap: wrap;
 }
 
+/*
+ * Кастомный спиннер (ИСПРАВЛЕНО по прямой просьбе пользователя): раньше
+ * стрелки инкремента/декремента были нативными стрелками браузера —
+ * светлый квадратик поверх тёмного поля, единственный элемент панели,
+ * который не подчинялся общей дизайн-системе (--tf2s-*, см.
+ * styles/tokens.css). Нативные стрелки полностью скрыты, вместо них — два
+ * своих треугольника (▲/▼, см. spinnerField в panel.ts) в цветах панели.
+ */
+.tf2s-spinner {
+  position: relative;
+  display: inline-flex;
+  width: 96px;
+  flex: none;
+}
 .tf2s-quickadd__input {
-  appearance: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
   border: 1px solid var(--tf2s-border);
   background: var(--tf2s-bg);
   color: var(--tf2s-text);
   border-radius: var(--tf2s-radius-sm);
-  padding: 5px 8px;
+  padding: 5px 20px 5px 8px;
   font-size: 12px;
-  width: 96px;
-  flex: none;
+  width: 100%;
+}
+.tf2s-quickadd__input::-webkit-outer-spin-button,
+.tf2s-quickadd__input::-webkit-inner-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
 }
 .tf2s-quickadd__input:focus {
   outline: none;
@@ -42,8 +62,55 @@
   color: var(--tf2s-text-faint);
 }
 
+.tf2s-spinner__ctrl {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 15px;
+  display: flex;
+  flex-direction: column;
+}
+.tf2s-spinner__btn {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: 0;
+  border: none;
+  border-left: 1px solid var(--tf2s-border);
+  background: var(--tf2s-surface-2);
+  color: var(--tf2s-text-dim);
+  cursor: pointer;
+  padding: 0;
+  font-size: 7px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tf2s-spinner__btn:first-child {
+  border-top-right-radius: var(--tf2s-radius-sm);
+  border-bottom: 1px solid var(--tf2s-border);
+}
+.tf2s-spinner__btn:last-child {
+  border-bottom-right-radius: var(--tf2s-radius-sm);
+}
+.tf2s-spinner__btn:hover {
+  color: var(--tf2s-accent-ink);
+  background: var(--tf2s-accent-bg);
+}
+.tf2s-spinner__btn:active {
+  filter: brightness(1.15);
+}
+
 .tf2s-quickadd__btn {
   flex: none;
+}
+
+/* Слот кнопки «Металл»/«Реф»-«Рек»-«Скр» — display:contents, чтобы его
+   содержимое (одна кнопка или три) участвовало прямо в flex-ряду родителя,
+   без собственного бокса/отступов самого <span>-обёртки (см. panel.ts). */
+.tf2s-quickadd__metal-slot {
+  display: contents;
 }
 
 .tf2s-quickadd__message {

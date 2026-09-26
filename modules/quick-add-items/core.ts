@@ -5,6 +5,7 @@ import {
   addItemsByElements,
   canModifyOffer,
   findKeys,
+  findMetalByKind,
   forceRefresh,
   getItemsForMetal,
   getSlotAssetIds,
@@ -83,6 +84,13 @@ function collectItems(win: TradeOfferWindow, req: QuickAddRequest): CollectResul
     }
     case 'METAL': {
       return getItemsForMetal(win, isYou ?? true, amount, index);
+    }
+    case 'REFINED':
+    case 'RECLAIMED':
+    case 'SCRAP': {
+      // По штукам одного номинала, а не по ref-стоимости — см. types.ts.
+      const kind = mode.toLowerCase() as 'refined' | 'reclaimed' | 'scrap';
+      return findMetalByKind(win, isYou ?? true, kind, amount, index);
     }
     case 'RECENT': {
       const container = getVisibleInventoryContainer();

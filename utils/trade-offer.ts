@@ -230,6 +230,19 @@ export function findKeys(win: TradeOfferWindow, isYou: boolean, amount: number, 
   return { items, satisfied: amount === items.length };
 }
 
+/** Ищет до `amount` предметов ОДНОГО конкретного номинала металла (Refined /
+ *  Reclaimed / Scrap) ПО ШТУКАМ — общий фильтр для кнопок «Реф»/«Рек»/«Скр»
+ *  в quick-add-items (см. её types.ts за тем, чем это отличается от
+ *  ref-стоимостной «Металл»/getItemsForMetal ниже). Тот же приём, что и
+ *  findKeys выше, просто с другим точным market_hash_name. */
+export function findMetalByKind(win: TradeOfferWindow, isYou: boolean, kind: 'refined' | 'reclaimed' | 'scrap', amount: number, index: number): CollectResult {
+  const name = METAL_NAME_BY_KIND[kind];
+  const filter = (item: TradeInventoryItem) => String(item.appid) === TF2_APPID && item.market_hash_name === name;
+  const found = pickItemsForSide(win, isYou, amount, index, filter);
+  const items = getElementsForItems(found);
+  return { items, satisfied: amount === items.length };
+}
+
 /**
  * Набирает металл на сумму `targetScrap` (целое число, минимальная единица
  * металла в TF2 — см. utils/currency.ts) — жадно, от Refined к Scrap,
