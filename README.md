@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version 1.0.0" />
+  <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version 1.1.0" />
   <img src="https://img.shields.io/badge/Chrome%20%2F%20Edge%20%2F%20Brave-MV3-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome MV3" />
   <img src="https://img.shields.io/badge/Firefox-MV2-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Firefox MV2" />
   <img src="https://img.shields.io/badge/built%20with-WXT%20%2B%20Vue%203-54BC4A?style=flat-square" alt="Built with WXT + Vue 3" />
