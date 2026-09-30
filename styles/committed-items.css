@@ -1,0 +1,116 @@
+/* Значок ⇄ в правом нижнем углу тайла предмета */
+.tf2s-committed-badge {
+  position: absolute !important;
+  right: 3px !important;
+  bottom: 2px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-radius: 3px !important;
+  padding: 1px 3px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9) !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  user-select: none !important;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Оптимизированные стили для занятых предметов: без reflow и без inline styles */
+.item[data-tf2s-committed],
+.trade_item[data-tf2s-committed] {
+  position: relative !important;
+}
+
+.item[data-tf2s-committed].tf2s-committed--border,
+.trade_item[data-tf2s-committed].tf2s-committed--border {
+  box-shadow: inset 0 0 0 2px var(--tf2s-committed-border-color, #f59e0b) !important;
+}
+
+.item[data-tf2s-committed].tf2s-committed--bg,
+.trade_item[data-tf2s-committed].tf2s-committed--bg {
+  background-color: var(--tf2s-committed-bg-color, rgba(245, 158, 11, 0.25)) !important;
+}
+
+/* Кнопка выпадающего списка «Из оффера...» в панели Quick Add */
+.tf2s-offer-clone-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tf2s-offer-clone-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  min-width: 260px;
+  max-width: 340px;
+  background: #171a21;
+  border: 1px solid #3c4456;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  padding: 6px 0;
+  margin-top: 4px;
+  display: none;
+  flex-direction: column;
+}
+
+.tf2s-offer-clone-menu--open {
+  display: flex !important;
+}
+
+.tf2s-offer-clone-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s ease;
+}
+
+.tf2s-offer-clone-item:last-child {
+  border-bottom: none;
+}
+
+.tf2s-offer-clone-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tf2s-offer-clone-item__partner {
+  font-size: 12px;
+  font-weight: bold;
+  color: #66c0f4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tf2s-offer-clone-item__details {
+  font-size: 11px;
+  color: #8f98a0;
+  margin-top: 2px;
+}
+
+.tf2s-offer-clone-empty {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #8f98a0;
+  text-align: center;
+}
+
+/* Предупреждающая плашка на странице списка офферов (/tradeoffers) */
+.tf2s-committed-offer-warning {
+  margin: 6px 12px;
+  padding: 6px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 3px;
+  color: #fbbf24;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

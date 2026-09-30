@@ -258,6 +258,18 @@ export const FEATURE_REGISTRY: FeatureModule[] = [
     status: 'ready',
     portedFrom: 'Steam Trade Offer Enhancer (shared.offers.identifiers) + tf2trader',
   },
+  {
+    id: 'trade-committed-items',
+    site: 'steamTradeOffer',
+    title: { ru: 'Занятые предметы в активных офферах', en: 'Committed items in active offers' },
+    description: {
+      ru: 'Отслеживает предметы, уже отправленные в других активных офферах. Подсвечивает их значком ⇄, цветной рамкой и/или фоном, защищает от случайного овербукинга и добавляет свободные кнопки в Quick Add.',
+      en: 'Tracks items committed in other active outgoing offers. Highlights them with a ⇄ badge, custom border, and/or background tint, warns of duplicate commitments, and adds free-currency buttons to Quick Add.',
+    },
+    defaultEnabled: true,
+    status: 'ready',
+    portedFrom: 'новая функция — уникальная разработка TF2 Trade Suite Tools',
+  },
 
   // ───────────────────────── steamOffersList ─────────────────────────
   {
@@ -307,6 +319,18 @@ export const FEATURE_REGISTRY: FeatureModule[] = [
     defaultEnabled: true,
     status: 'ready',
     portedFrom: 'tf2TradingUtils (tradeOfferCurrency)',
+  },
+  {
+    id: 'offers-item-attributes',
+    site: 'steamOffersList',
+    title: { ru: 'Иконки и рамки предметов в офферах и истории', en: 'Item icons & borders in offers and history' },
+    description: {
+      ru: 'Unusual-эффекты, strange-рамки, пунктир некрафта и значки spell/killstreak/parts прямо на иконках предметов в списке офферов и истории трейдов.',
+      en: 'Unusual effects, Strange borders, uncraftable dashed outline, and spell/killstreak/parts icons right on item tiles in the offers list and trade history.',
+    },
+    defaultEnabled: true,
+    status: 'ready',
+    portedFrom: 'Steam Trade Offer Enhancer (shared.offers.identifiers) + tf2trader',
   },
   // 'profile-links' (bp.tf/rep.tf/posts.tf/steamdb.info/liquid.tf в списках
   // офферов) сюда тоже сознательно НЕ включён — та же причина, что и у

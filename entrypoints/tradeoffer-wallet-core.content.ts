@@ -4,7 +4,7 @@ import { registerWalletCoreHandler } from '../modules/wallet-summary/core';
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
   world: 'MAIN',
-  runAt: 'document_idle',
+  runAt: 'document_start',
   main() {
     registerWalletCoreHandler();
   },

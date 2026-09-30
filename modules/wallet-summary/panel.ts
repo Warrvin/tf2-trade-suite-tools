@@ -206,6 +206,22 @@ export function mountWalletPanel(container: HTMLElement, locale: Locale): { dest
       </div>`;
   }
 
+  async function loadPartnerOnly() {
+    if (destroyed) return;
+    try {
+      const res = await requestFromMain<WalletRequest, WalletResponse>(WALLET_CHANNEL, { who: 'partner' });
+      if (destroyed) return;
+      if (res && res.ok && (!state.partner || !state.partner.ok || res.totalItems > 0)) {
+        state.partner = res;
+        render();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  let partnerRetryTimer: ReturnType<typeof setTimeout> | undefined;
+
   async function load() {
     state.loading = true;
     render();
@@ -219,11 +235,36 @@ export function mountWalletPanel(container: HTMLElement, locale: Locale): { dest
     state.partner = partner.status === 'fulfilled' ? partner.value : { who: 'partner', ok: false, reason: 'unknown' };
     state.loading = false;
     render();
+
+    // Если инвентарь партнёра ещё не был загружен страницей Steam (0 предметов или ошибка),
+    // пробуем подхватить его ещё через 1.5с и 3.5с
+    if (!state.partner || !state.partner.ok || state.partner.totalItems === 0) {
+      clearTimeout(partnerRetryTimer);
+      partnerRetryTimer = setTimeout(() => {
+        void loadPartnerOnly().then(() => {
+          if (!state.partner || !state.partner.ok || state.partner.totalItems === 0) {
+            partnerRetryTimer = setTimeout(() => void loadPartnerOnly(), 2000);
+          }
+        });
+      }, 1500);
+    }
   }
+
+  // При клике на вкладку чужого инвентаря Steam начинает его загрузку — тихо подхватываем
+  const onPartnerTabClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('#inventory_select_their_inventory, [id^="inventory_select_their"], .trade_partner_header')) {
+      setTimeout(() => void loadPartnerOnly(), 1000);
+      setTimeout(() => void loadPartnerOnly(), 2500);
+    }
+  };
+  document.addEventListener('click', onPartnerTabClick, true);
 
   return {
     destroy: () => {
       destroyed = true;
+      clearTimeout(partnerRetryTimer);
+      document.removeEventListener('click', onPartnerTabClick, true);
       host.remove();
     },
   };

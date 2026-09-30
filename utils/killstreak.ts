@@ -73,27 +73,65 @@ const TIER1_COLOR = '#8a8f98';
  * совпадал и всё скатывалось в тир 1 (просто "KS"), даже когда Sheen и
  * Killstreaker были собраны из описания.
  */
+const RUSSIAN_SHEEN_MAP: Record<string, string> = {
+  'командный блеск': 'Team Shine',
+  'лиловое злорадство': 'Villainous Violet',
+  'злодейский фиолетовый': 'Villainous Violet',
+  'горячая штучка': 'Hot Rod',
+  'хот-род': 'Hot Rod',
+  'хот род': 'Hot Rod',
+  'изумрудная зависть': 'Agonizing Emerald',
+  'мучительный изумруд': 'Agonizing Emerald',
+  'надгробный нарцисс': 'Deadly Daffodil',
+  'смертоносный нарцисс': 'Deadly Daffodil',
+  'нарцисс': 'Deadly Daffodil',
+  'злобный зеленый': 'Mean Green',
+  'злобный зеленый ': 'Mean Green',
+  'подлый зеленый': 'Mean Green',
+  'манндарин': 'Manndarin',
+};
+
+const RUSSIAN_KILLSTREAKER_MAP: Record<string, string> = {
+  'мозговой разряд': 'Cerebral Discharge',
+  'огненные рога': 'Fire Horns',
+  'пламя': 'Flames',
+  'языки пламени': 'Flames',
+  'гипнолуч': 'Hypno-Beam',
+  'гипно-луч': 'Hypno-Beam',
+  'испепелитель': 'Incinerator',
+  'крематорий': 'Incinerator',
+  'сингулярность': 'Singularity',
+  'торнадо': 'Tornado',
+};
+
 export function getKillstreakTier(marketHashName: string | undefined): KillstreakTier {
   const name = marketHashName ?? '';
-  if (/\bProfessional Killstreak\b/.test(name)) return 3;
-  if (/\bSpecialized Killstreak\b/.test(name)) return 2;
+  if (/\b(?:Professional Killstreak|профессионального убийцы|высшего порядка)\b/i.test(name)) return 3;
+  if (/\b(?:Specialized Killstreak|особо опасного убийцы|особого порядка)\b/i.test(name)) return 2;
   return 1;
 }
 
 export function buildKillstreakInfo(marketHashName: string | undefined, sheen?: string, killstreaker?: string): KillstreakInfo {
-  const tier = getKillstreakTier(marketHashName);
+  let tier = getKillstreakTier(marketHashName);
+  if (killstreaker && tier < 3) tier = 3;
+  else if (sheen && tier < 2) tier = 2;
 
   if (tier === 1) {
     return { tier, code: 'KS', color: TIER1_COLOR, tooltip: 'Killstreak' };
   }
 
-  const sheenCode = sheen ? SHEEN_CODES[sheen] ?? sheen.slice(0, 2).toUpperCase() : '?';
-  const sheenColor = sheen ? SHEEN_COLORS[sheen] ?? TIER1_COLOR : TIER1_COLOR;
+  const normSheen = sheen ? (RUSSIAN_SHEEN_MAP[sheen.trim().toLowerCase().replace(/ё/g, 'е')] ?? sheen.trim()) : undefined;
+  const normKillstreaker = killstreaker
+    ? (RUSSIAN_KILLSTREAKER_MAP[killstreaker.trim().toLowerCase().replace(/ё/g, 'е')] ?? killstreaker.trim())
+    : undefined;
+
+  const sheenCode = normSheen ? SHEEN_CODES[normSheen] ?? normSheen.slice(0, 2).toUpperCase() : '?';
+  const sheenColor = normSheen ? SHEEN_COLORS[normSheen] ?? TIER1_COLOR : TIER1_COLOR;
 
   if (tier === 2) {
     return {
       tier,
-      sheen,
+      sheen: normSheen || sheen,
       code: sheenCode,
       color: sheenColor,
       tooltip: sheen ? `Specialized Killstreak · Sheen: ${sheen}` : 'Specialized Killstreak',
@@ -101,15 +139,17 @@ export function buildKillstreakInfo(marketHashName: string | undefined, sheen?: 
   }
 
   // tier === 3
-  const killstreakerCode = killstreaker ? KILLSTREAKER_CODES[killstreaker] ?? killstreaker.slice(0, 2).toUpperCase() : '?';
+  const killstreakerCode = normKillstreaker
+    ? KILLSTREAKER_CODES[normKillstreaker] ?? normKillstreaker.slice(0, 2).toUpperCase()
+    : '?';
   const tooltipParts = ['Professional Killstreak'];
   if (sheen) tooltipParts.push(`Sheen: ${sheen}`);
   if (killstreaker) tooltipParts.push(`Killstreaker: ${killstreaker}`);
 
   return {
     tier,
-    sheen,
-    killstreaker,
+    sheen: normSheen || sheen,
+    killstreaker: normKillstreaker || killstreaker,
     code: `${sheenCode}·${killstreakerCode}`,
     color: sheenColor,
     tooltip: tooltipParts.join(' · '),

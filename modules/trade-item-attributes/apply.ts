@@ -61,31 +61,30 @@ export function startItemAttributes(
     if (stopped || !snapshot) return;
 
     // Сканируем ВСЕ .item, а не только ещё не помеченные: панель выбора
-    // предметов может переиспользовать DOM-узлы под другие предметы (см.
-    // комментарий у PROCESSED_ATTR) — сверяем assetId, а не просто наличие
-    // пометки.
+    // предметов может переиспользовать DOM-узлы под другие предметы
     const items = document.querySelectorAll<HTMLElement>('div.item[id^="item440_2_"]');
     items.forEach((el) => {
       const match = el.id.match(ITEM_ID_RE);
       if (!match) return;
       const assetId = match[3];
       if (getProcessedKey(el) === assetId) return; // уже размечен под этот же предмет
-      // Узел уже помечен, но под ДРУГИМ assetId — переиспользован под другой
-      // предмет (пагинация/скролл); снимаем старую (чужую) разметку сразу,
-      // чтобы не показывать иконки не того предмета, даже если атрибуты
-      // нового ещё не готовы.
+
       if (el.hasAttribute(PROCESSED_ATTR)) undecorateItemAttributesElement(el);
 
       const side = sideFor(el);
-      if (!side) return; // сторона пока не определяется — попробуем на следующем скане
+      // Устойчивый поиск: если сторона определена — ищем в ней; если нет или не найдено,
+      // ищем по обоим снимкам (assetId уникален для каждого предмета в Steam)
+      const attrs =
+        (side === 'me' ? snapshot!.me[assetId] : side === 'partner' ? snapshot!.partner[assetId] : null) ??
+        snapshot!.me[assetId] ??
+        snapshot!.partner[assetId];
 
-      const attrs = (side === 'me' ? snapshot!.me : snapshot!.partner)[assetId];
       if (attrs) applyItemAttributesToElement(el, attrs, detailLevel, assetId, locale);
-      // если атрибутов нет — оставляем неразмеченным: возможно, это более
-      // свежий снимок инвентаря ещё не подъехал (см. refresh ниже), подхватим
-      // на следующем скане
     });
   }
+
+  let partnerRetryAttempts = 0;
+  let partnerRetryTimer: ReturnType<typeof setTimeout> | undefined;
 
   async function refresh() {
     if (stopped) return;
@@ -93,33 +92,59 @@ export function startItemAttributes(
       snapshot = await requestFromMain<AttributesRequest, AttributesSnapshot>(ATTRIBUTES_CHANNEL, {});
     } catch {
       // MAIN-скрипт ещё не готов (страница только открылась) — подождём
-      // следующей плановой попытки ниже.
     }
     scan();
+
+    // Если инвентарь партнёра ещё пустой, планируем быстрые до-опросы пока Steam его грузит
+    if (snapshot && Object.keys(snapshot.partner).length === 0 && partnerRetryAttempts < 8) {
+      partnerRetryAttempts++;
+      clearTimeout(partnerRetryTimer);
+      partnerRetryTimer = setTimeout(() => void refresh(), 1500);
+    }
   }
 
   void refresh();
-  // Инвентарь партнёра (особенно большой) иногда догружается не сразу —
-  // повторяем запрос снимка ещё несколько раз в первые секунды.
-  for (const ms of [1000, 2500, 5000, 10000]) {
+  // Повторяем запрос снимка в первые секунды для подхвата асинхронно догружаемого инвентаря партнёра
+  for (const ms of [300, 800, 1800, 3500, 7000]) {
     refreshTimers.push(setTimeout(() => void refresh(), ms));
   }
 
+  // При клике на вкладки инвентарей или перелистывание страниц — мгновенно обновляем
+  const onTabClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('.inventory_tab, [id^="inventory_select_"], .trade_partner_header, .pagebtn')) {
+      setTimeout(() => void refresh(), 250);
+      setTimeout(() => void refresh(), 1000);
+    }
+  };
+  document.addEventListener('click', onTabClick, true);
+
   const observer = new MutationObserver(() => {
     clearTimeout(scanTimer);
-    scanTimer = setTimeout(scan, 150);
+    scanTimer = setTimeout(scan, 60);
   });
-  // attributes: true + attributeFilter: ['id'] — важно для переиспользуемых
-  // узлов (см. PROCESSED_ATTR): Steam иногда меняет ТОЛЬКО id/фон
-  // существующего .item под новый предмет, без добавления/удаления узлов, и
-  // childList-мутация в этом случае не происходит вовсе.
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['id'] });
+
+  const invContainer = document.getElementById('inventory_box') || document.getElementById('inventories') || document.body;
+  observer.observe(invContainer, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['id', 'class', 'style'],
+  });
+
+  // Также наблюдаем за слотами трейда, если они вне inventory_box
+  const yourSlots = document.getElementById('your_slots');
+  const theirSlots = document.getElementById('their_slots');
+  if (yourSlots) observer.observe(yourSlots, { childList: true, subtree: true, attributes: true, attributeFilter: ['id', 'class', 'style'] });
+  if (theirSlots) observer.observe(theirSlots, { childList: true, subtree: true, attributes: true, attributeFilter: ['id', 'class', 'style'] });
 
   return {
     stop: () => {
       stopped = true;
       observer.disconnect();
+      document.removeEventListener('click', onTabClick, true);
       clearTimeout(scanTimer);
+      clearTimeout(partnerRetryTimer);
       refreshTimers.forEach(clearTimeout);
     },
     setDetailLevel: (level: IconDetailLevel) => {

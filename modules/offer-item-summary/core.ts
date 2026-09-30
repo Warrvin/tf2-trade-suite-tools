@@ -1,4 +1,5 @@
 import { HISTORY_ITEM_QTY_CLASS, TRADE_ITEM_QTY_CLASS } from '../../utils/offer-list-badges';
+import { matchTradeItemCurrency } from '../../utils/offer-list-currency';
 
 /**
  * "Движок" модуля — схлопывает повторяющиеся одинаковые предметы на ОДНОЙ
@@ -18,6 +19,20 @@ import { HISTORY_ITEM_QTY_CLASS, TRADE_ITEM_QTY_CLASS } from '../../utils/offer-
  * НЕ подтверждено собственным живым тестом, см. README), на `/tradehistory`
  * — по тексту имени (`.history_item_name`), которое там есть у каждого
  * предмета.
+ *
+ * ИСКЛЮЧЕНИЕ ДЛЯ ВАЛЮТЫ на `/tradeoffers` (баг-репорт пользователя,
+ * живой оффер): `data-economy-item` включает classid, а у одного и того же
+ * ключа их МНОГО разных (18 известных — `101785959` и `339892` среди них
+ * официально подтверждены, остальные 16 внесены по списку пользователя, см.
+ * `utils/offer-list-currency.ts`) — группировка строго по этой строке
+ * считала бы их РАЗНЫМИ предметами и показывала два отдельных тайла вместо
+ * одного `×2`. Поэтому для предмета, опознанного
+ * как валюта (`matchTradeItemCurrency`, тот же детект, что и у
+ * `offer-currency-total`, требование 4), ключ группировки — вид валюты
+ * (`'currency:keys'` и т.п.), а НЕ сырой `data-economy-item` — так все
+ * ключи/металл одного вида схлопываются в один тайл независимо от
+ * конкретного classid. Обычные (не-валютные) предметы это не затрагивает —
+ * для них ключ группировки прежний.
  *
  * СВЯЗЬ С `offer-currency-total` (требование 4 — не дублировать бейдж-
  * логику): бейдж "×N", который этот модуль вешает, ЧИТАЕТ
@@ -56,7 +71,8 @@ function groupOfferList(listEl: Element): void {
   const groups = new Map<string, Element[]>();
 
   for (const item of items) {
-    const key = item.getAttribute('data-economy-item');
+    const currency = matchTradeItemCurrency(item);
+    const key = currency ? `currency:${currency}` : item.getAttribute('data-economy-item');
     if (!key) continue;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);

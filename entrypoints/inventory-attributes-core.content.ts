@@ -17,7 +17,11 @@ import { registerInventoryAttributesCoreHandler } from '../modules/inventory-ite
 // перехватчика. runAt: 'document_start' гарантирует, что патч window.fetch/
 // XMLHttpRequest встанет раньше любого скрипта самой страницы.
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   world: 'MAIN',
   runAt: 'document_start',
   main() {

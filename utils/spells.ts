@@ -71,6 +71,8 @@ export interface SpellInfo {
   kind: SpellKind;
   /** Отображаемое имя — точное (из каталога) или сырой текст от Steam, если не распознали. */
   name: string;
+  /** Каноническое английское имя спелла (если распознан). */
+  canonicalName?: string;
   /** Короткий код — используется только для нераспознанного fallback-бейджа. */
   code: string;
   color: SpellColor;
@@ -84,6 +86,53 @@ const FALLBACK_COLOR = '#8a8f98';
 // нераспознанного спелла было не отличить от конкретного известного).
 const FALLBACK_CODE = '?';
 
+export const RUSSIAN_TO_ENGLISH_SPELL: Record<string, string> = {
+  // Effect
+  'голоса из преисподней': 'Voices From Below',
+  'трупный треп разведчика': 'Voices From Below',
+  'летальный лай солдата': 'Voices From Below',
+  'зловещий свист поджигателя': 'Voices From Below',
+  'бубнеж подрывника': 'Voices From Below',
+  'злобный рык пулеметчика': 'Voices From Below',
+  'кошмарный клекот инженера': 'Voices From Below',
+  'хриплый хохот медика': 'Voices From Below',
+  'замогильный звон снайпера': 'Voices From Below',
+  'смертельный смех шпиона': 'Voices From Below',
+  'экзорцизм': 'Exorcism',
+  'тыквенные бомбы': 'Pumpkin Bombs',
+  'тыквенные ракеты': 'Pumpkin Bombs',
+  'счетверенная тыквенная турель': 'Pumpkin Bombs',
+  'тыквенные гранаты': 'Pumpkin Bombs',
+  'призрачное пламя': 'Halloween Fire',
+  'хеллоуинский огонь': 'Halloween Fire',
+  'пламя хеллоуина': 'Halloween Fire',
+
+  // Paint
+  'окрас смерти': 'Die Job',
+  'малярное дело': 'Die Job',
+  'хроматическая коррозия': 'Chromatic Corruption',
+  'хроматическая порча': 'Chromatic Corruption',
+  'разложение пигментов': 'Putrescent Pigmentation',
+  'гнилостная пигментация': 'Putrescent Pigmentation',
+  'призрачный спектр': 'Spectral Spectrum',
+  'спектральный спектр': 'Spectral Spectrum',
+  'зловещий окрас': 'Sinister Staining',
+  'зловещее окрашивание': 'Sinister Staining',
+
+  // Footprints
+  'следы командного духа': 'Team Spirit Footprints',
+  'следы зеленухи': 'Gangreen Footprints',
+  'следы гангрены': 'Gangreen Footprints',
+  'следы трупной бледности': 'Corpse Gray Footprints',
+  'следы трупно-серого': 'Corpse Gray Footprints',
+  'следы фиолетовой фурии': 'Violent Violet Footprints',
+  'яростные фиолетовые следы': 'Violent Violet Footprints',
+  'следы гнилого апельсина': 'Rotten Orange Footprints',
+  'следы багровых синяков': 'Bruised Purple Footprints',
+  'следы кровоподтеков': 'Bruised Purple Footprints',
+  'подковы пешего всадника': 'Headless Horseshoes',
+};
+
 // Поиск по каталогу — БЕЗ учёта регистра: Steam не всегда даёт имя строго
 // в "заголовочном" регистре (например реально пишет "Voices from Below" со
 // строчной "from"). Ключ каталога остаётся "красивым" — для отображения
@@ -94,12 +143,25 @@ const SPELL_CATALOG_BY_LOWER: Record<string, SpellCatalogEntry> = Object.fromEnt
   Object.entries(SPELL_CATALOG).map(([name, entry]) => [name.toLowerCase(), entry]),
 );
 
+export function normalizeSpellKey(text: string): string {
+  return text.trim().toLowerCase().replace(/ё/g, 'е');
+}
+
 /** Разбирает ОДНУ строку-спелл (уже без префикса/суффикса) в SpellInfo. */
 export function classifySpell(raw: string): SpellInfo {
   const trimmed = raw.trim();
-  const known = SPELL_CATALOG_BY_LOWER[trimmed.toLowerCase()];
+  const normalized = normalizeSpellKey(trimmed);
+  const canonicalName = RUSSIAN_TO_ENGLISH_SPELL[normalized] ?? trimmed;
+  const known = SPELL_CATALOG_BY_LOWER[canonicalName.toLowerCase()] ?? SPELL_CATALOG_BY_LOWER[normalized];
   if (known) {
-    return { kind: known.kind, name: trimmed, code: known.code, color: known.color, raw: trimmed };
+    return {
+      kind: known.kind,
+      name: trimmed,
+      canonicalName,
+      code: known.code,
+      color: known.color,
+      raw: trimmed,
+    };
   }
   // Не совпало ни с одним известным именем — показываем как есть, без выдумывания.
   return { kind: 'unknown', name: trimmed, code: FALLBACK_CODE, color: FALLBACK_COLOR, raw: trimmed };

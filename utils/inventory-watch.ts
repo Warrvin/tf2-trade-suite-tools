@@ -72,6 +72,41 @@ function urlOf(input: RequestInfo | URL): string | null {
   return null;
 }
 
+function harvestFromPageGlobals(state: InventoryWatchState) {
+  const win = window as unknown as Record<string, any>;
+  try {
+    // 1. window.g_ActiveInventory (Steam на странице инвентаря)
+    if (win.g_ActiveInventory) {
+      const act = win.g_ActiveInventory;
+      if (act.m_rgAssets && act.m_rgDescriptions) {
+        const descMap = new Map<string, any>();
+        for (const [key, desc] of Object.entries(act.m_rgDescriptions as Record<string, any>)) {
+          descMap.set(key, desc);
+        }
+        for (const asset of Object.values(act.m_rgAssets as Record<string, any>)) {
+          if (!asset) continue;
+          const desc = descMap.get(`${asset.classid}_${asset.instanceid ?? '0'}`);
+          if (desc) {
+            const id = String(asset.assetid ?? asset.id);
+            state.itemByAssetId.set(id, desc);
+            state.amountByAssetId.set(id, Number(asset.amount ?? 1));
+          }
+        }
+      }
+    }
+    // 2. window.g_rgAppContextData
+    const rgInv = win.g_rgAppContextData?.['440']?.rgContexts?.['2']?.inventory?.rgInventory;
+    if (rgInv) {
+      for (const [id, item] of Object.entries(rgInv as Record<string, any>)) {
+        state.itemByAssetId.set(String(id), item);
+        state.amountByAssetId.set(String(id), Number(item.amount ?? 1));
+      }
+    }
+  } catch {
+    // Игнорируем исключения при чтении
+  }
+}
+
 /**
  * Ставит обёртки fetch/XHR ОДИН раз за жизнь страницы (per window — см.
  * комментарий выше) и возвращает растущее состояние. Идемпотентно: какой бы
@@ -81,7 +116,10 @@ function urlOf(input: RequestInfo | URL): string | null {
 export function installInventoryWatch(): InventoryWatchState {
   const win = window as unknown as Record<string, unknown>;
   const existing = win[WINDOW_FLAG] as InventoryWatchState | undefined;
-  if (existing) return existing;
+  if (existing) {
+    harvestFromPageGlobals(existing);
+    return existing;
+  }
 
   const state: InventoryWatchState = {
     itemByAssetId: new Map(),
@@ -89,6 +127,7 @@ export function installInventoryWatch(): InventoryWatchState {
     totalInventoryCount: null,
   };
   win[WINDOW_FLAG] = state;
+  harvestFromPageGlobals(state);
 
   function mergeInventoryResponse(data: InventoryResponse | null | undefined) {
     if (!data || !data.assets || !data.descriptions) return;

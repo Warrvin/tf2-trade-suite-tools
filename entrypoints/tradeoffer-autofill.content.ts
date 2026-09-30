@@ -26,7 +26,6 @@ import panelCss from '../modules/auto-fill-from-listing/panel.css?inline';
  */
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
-  cssInjectionMode: 'ui',
   async main(ctx) {
     let mountedHandle: { destroy: () => void; setOptions: (options: AutoFillPanelOptions) => void } | null = null;
     let autoFillEnabled = await isFeatureEnabled(AUTO_FILL_FEATURE_ID);

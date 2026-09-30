@@ -1,5 +1,6 @@
 import { CurrencyKind, formatKeysAndScrap, getCurrencyKindFromName, METAL_SCRAP_VALUE } from '../../utils/currency';
 import { getBadgeQty, HISTORY_ITEM_QTY_CLASS, TRADE_ITEM_QTY_CLASS } from '../../utils/offer-list-badges';
+import { matchTradeItemCurrency } from '../../utils/offer-list-currency';
 import type { Locale } from '../../utils/i18n';
 
 const UI = {
@@ -28,12 +29,12 @@ const UI = {
  *  - `/tradeoffers`(`/sent`): строка — `.tradeoffer`, у каждого предмета
  *    (`.trade_item`) НЕТ имени/текста вообще — только иконка и
  *    `data-economy-item="classinfo/440/<classid>/<instanceid>"`. Валюта
- *    матчится по `classid` (см. `CURRENCY_KIND_BY_CLASSID` — тот же classid,
- *    что подтверждён живыми classinfo-ответами в tf2TradingUtils, ОТДЕЛЬНЫЙ
- *    id от TF2-схемного defindex из utils/currency.ts, см. её комментарий),
- *    с резервным вариантом по хэшу иконки в src (`CURRENCY_KIND_BY_ICON_HASH`)
- *    на случай, если у какого-то аккаунта/локали `data-economy-item` вдруг
- *    не окажется — НЕ подтверждено живым тестом, чистая подстраховка.
+ *    матчится по `classid` (см. `utils/offer-list-currency.ts` —
+ *    `matchTradeItemCurrency`/`CURRENCY_KIND_BY_CLASSID`, ОТДЕЛЬНЫЙ id от
+ *    TF2-схемного defindex из utils/currency.ts, см. её комментарий; там же
+ *    — почему у одного и того же ключа ДВА разных classid), с резервным
+ *    вариантом по хэшу иконки в src на случай ЕЩЁ не внесённого classid —
+ *    НЕ подтверждено живым тестом, чистая подстраховка.
  *  - `/tradehistory`: строка — `.tradehistoryrow`, у каждого предмета
  *    (`.history_item`) ЕСТЬ обычное имя (`.history_item_name`) — здесь
  *    достаточно уже существующего `getCurrencyKindFromName`, как и везде
@@ -49,28 +50,12 @@ const UI = {
  */
 
 /**
- * Steam economy classid (см. utils/currency.ts#CURRENCY_DEFINDEX за тем, чем
- * classid отличается от TF2-схемного defindex) для каждого валютного
- * предмета — нужен ТОЛЬКО здесь, см. шапку файла.
+ * Steam economy classid/icon-хэш-детект валюты — переехал в
+ * `utils/offer-list-currency.ts` (требование 4: тот же детект нужен и
+ * `offer-item-summary` для группировки, см. её core.ts). Здесь только
+ * суммирование — сам детект см. там же, включая комментарий про ДВА
+ * classid у одного и того же ключа.
  */
-const CURRENCY_KIND_BY_CLASSID: Record<string, CurrencyKind> = {
-  '101785959': 'keys',
-  '2674': 'refined',
-  '5564': 'reclaimed',
-  '2675': 'scrap',
-};
-
-/** Резервный путь по хэшу иконки в src — см. шапку файла. */
-const CURRENCY_KIND_BY_ICON_HASH: Record<string, CurrencyKind> = {
-  'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEAaR4uURrwvz0N252yVaDVWrRTno9m4ccG2GNqxlQoZrC2aG9hcVGUWflbX_drrVu5UGki5sAij6tOtQ':
-    'keys',
-  'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEbZQsUYhTkhzJWhsO1Mv6NGucF1Ygzt8ZQijJukFMiMrbhYDEwI1yRVKNfD6xorQ3qW3Jr6546DNPuou9IOVK4p4kWJaA':
-    'refined',
-  'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEbZQsUYhTkhzJWhsO0Mv6NGucF1YJlscMEgDdvxVYsMLPkMmFjI1OSUvMHDPBp9lu0CnVluZQxA9Gwp-hIOVK4sMMNWF4':
-    'reclaimed',
-  'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEbZQsUYhTkhzJWhsPZAfOeD-VOn4phtsdQ32ZtxFYoN7PkYmVmIgeaUKNaX_Rjpwy8UHMz6pcxAIfnovUWJ1t9nYFqYw':
-    'scrap',
-};
 
 const METAL_KINDS: ReadonlySet<CurrencyKind> = new Set(['refined', 'reclaimed', 'scrap']);
 
@@ -144,17 +129,6 @@ function renderTotalBox(sides: SideTotal[], locale: Locale): HTMLElement | null 
 
 // ───────────────────────── /tradeoffers(/sent) — по classid ─────────────────────────
 
-function matchOfferCurrency(tradeItemEl: Element): CurrencyKind | null {
-  const economyItem = tradeItemEl.getAttribute('data-economy-item') ?? '';
-  const classid = economyItem.match(/^classinfo\/\d+\/(\d+)\//)?.[1];
-  if (classid && CURRENCY_KIND_BY_CLASSID[classid]) return CURRENCY_KIND_BY_CLASSID[classid];
-
-  const src = tradeItemEl.querySelector('img')?.getAttribute('src') ?? '';
-  for (const [hash, kind] of Object.entries(CURRENCY_KIND_BY_ICON_HASH)) {
-    if (src.includes(hash)) return kind;
-  }
-  return null;
-}
 
 /** Текст заголовка этой стороны (например, "Hat Crafter offered") — своя у
  *  каждого блока, поэтому не подписываем сами "Вы"/"Партнёр": на `/sent`
@@ -172,7 +146,7 @@ function sumOfferSide(itemsBlockEl: Element, locale: Locale): SideTotal {
   for (const item of itemsBlockEl.querySelectorAll(':scope > .tradeoffer_item_list > .trade_item')) {
     const qty = getBadgeQty(item, TRADE_ITEM_QTY_CLASS);
     itemCount += qty;
-    const kind = matchOfferCurrency(item);
+    const kind = matchTradeItemCurrency(item);
     if (!kind) continue;
     if (kind === 'keys') keys += qty;
     else metalScrap += scrapValueOf(kind) * qty;

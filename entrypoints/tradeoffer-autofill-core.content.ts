@@ -4,7 +4,7 @@ import { registerAutoFillCoreHandler } from '../modules/auto-fill-from-listing/c
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
   world: 'MAIN',
-  runAt: 'document_idle',
+  runAt: 'document_start',
   main() {
     registerAutoFillCoreHandler();
   },

@@ -19,7 +19,22 @@
  * панелью ВЗАИМОЗАМЕНЯЕМО с METAL через переключатель режима (см. panel.ts)
  * — либо одна кнопка "Металл", либо эти три, никогда одновременно.
  */
-export type QuickAddMode = 'ITEMS' | 'KEYS' | 'METAL' | 'REFINED' | 'RECLAIMED' | 'SCRAP' | 'RECENT' | 'CLEAR_ME' | 'CLEAR_THEM';
+export type QuickAddMode =
+  | 'ITEMS'
+  | 'KEYS'
+  | 'FREE_KEYS'
+  | 'METAL'
+  | 'FREE_METAL'
+  | 'REFINED'
+  | 'FREE_REFINED'
+  | 'RECLAIMED'
+  | 'FREE_RECLAIMED'
+  | 'SCRAP'
+  | 'FREE_SCRAP'
+  | 'FROM_OFFER'
+  | 'RECENT'
+  | 'CLEAR_ME'
+  | 'CLEAR_THEM';
 
 export interface QuickAddRequest {
   mode: QuickAddMode;
@@ -29,6 +44,14 @@ export interface QuickAddRequest {
   index: number;
   /** Чей инвентарь: true — свой, false — партнёра. Не используется для CLEAR_* (там сторона уже задана самим mode). */
   isYou: boolean | null;
+  /** Список assetId занятых предметов (для режимов FREE_*). */
+  committedAssetIds?: string[];
+  /** Список economyKey занятых предметов (для режимов FREE_*). */
+  committedEconomyKeys?: string[];
+  /** Точные assetId для добавления (для режима FROM_OFFER). */
+  targetAssetIds?: string[];
+  /** Точные economyKey для добавления (для режима FROM_OFFER, если assetId ещё не известны). */
+  targetEconomyKeys?: string[];
 }
 
 export interface QuickAddResponse {
@@ -39,6 +62,8 @@ export interface QuickAddResponse {
    * оффер уже отправлен и показывается "Change offer".
    */
   satisfied: boolean | null;
+  addedCount?: number;
+  wantedCount?: number;
 }
 
 export const QUICK_ADD_CHANNEL = 'tf2suite:quick-add-items';

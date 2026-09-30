@@ -2,8 +2,11 @@ import { respondInMain } from '../../utils/bridge';
 import {
   CollectResult,
   TradeOfferWindow,
+  addItems,
   addItemsByElements,
   canModifyOffer,
+  findItemsByAssetIds,
+  findItemsByEconomyKeys,
   findKeys,
   findMetalByKind,
   forceRefresh,
@@ -82,8 +85,16 @@ function collectItems(win: TradeOfferWindow, req: QuickAddRequest): CollectResul
     case 'KEYS': {
       return findKeys(win, isYou ?? true, amount, index);
     }
+    case 'FREE_KEYS': {
+      const exclude = req.committedAssetIds ? new Set(req.committedAssetIds) : undefined;
+      return findKeys(win, isYou ?? true, amount, index, exclude);
+    }
     case 'METAL': {
       return getItemsForMetal(win, isYou ?? true, amount, index);
+    }
+    case 'FREE_METAL': {
+      const exclude = req.committedAssetIds ? new Set(req.committedAssetIds) : undefined;
+      return getItemsForMetal(win, isYou ?? true, amount, index, exclude);
     }
     case 'REFINED':
     case 'RECLAIMED':
@@ -91,6 +102,25 @@ function collectItems(win: TradeOfferWindow, req: QuickAddRequest): CollectResul
       // По штукам одного номинала, а не по ref-стоимости — см. types.ts.
       const kind = mode.toLowerCase() as 'refined' | 'reclaimed' | 'scrap';
       return findMetalByKind(win, isYou ?? true, kind, amount, index);
+    }
+    case 'FREE_REFINED':
+    case 'FREE_RECLAIMED':
+    case 'FREE_SCRAP': {
+      const kind = mode.replace('FREE_', '').toLowerCase() as 'refined' | 'reclaimed' | 'scrap';
+      const exclude = req.committedAssetIds ? new Set(req.committedAssetIds) : undefined;
+      return findMetalByKind(win, isYou ?? true, kind, amount, index, exclude);
+    }
+    case 'FROM_OFFER': {
+      if ((!req.targetAssetIds || req.targetAssetIds.length === 0) && (!req.targetEconomyKeys || req.targetEconomyKeys.length === 0)) {
+        return { items: [], satisfied: true };
+      }
+      if (req.targetAssetIds && req.targetAssetIds.length > 0) {
+        return findItemsByAssetIds(win, isYou ?? true, req.targetAssetIds);
+      }
+      if (req.targetEconomyKeys && req.targetEconomyKeys.length > 0) {
+        return findItemsByEconomyKeys(win, isYou ?? true, req.targetEconomyKeys);
+      }
+      return { items: [], satisfied: true };
     }
     case 'RECENT': {
       const container = getVisibleInventoryContainer();
@@ -254,8 +284,9 @@ export function registerQuickAddCoreHandler(): () => void {
 
     if (!canModifyOffer()) return { satisfied: null };
 
-    const { items, satisfied } = collectItems(win, req);
-    addItemsByElements(win, items);
-    return { satisfied };
+    const collectResult = collectItems(win, req);
+    addItems(win, collectResult);
+    const addedCount = collectResult.inventoryItems?.length ?? collectResult.items.length;
+    return { satisfied: collectResult.satisfied, addedCount };
   });
 }

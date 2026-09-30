@@ -170,7 +170,7 @@ function renderDetailedIcons(wrap: HTMLElement, attrs: ItemAttributes, locale: L
   for (const spell of attrs.spells) {
     const uncertain = spell.kind === 'paint' || spell.kind === 'footprints' || spell.kind === 'unknown';
     const tooltip = uncertain ? `${spell.name}${t(locale, RECOGNITION_UNCERTAIN_SUFFIX)}` : spell.name;
-    const shape = getSpellIconShape(spell.name);
+    const shape = getSpellIconShape(spell.canonicalName || spell.name);
     if (shape) {
       // Известный спелл — рисуем узнаваемую картинку (см. utils/spell-icons.ts),
       // перекрашенную в цвет конкретного варианта.

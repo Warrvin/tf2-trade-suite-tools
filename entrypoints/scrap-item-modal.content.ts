@@ -71,7 +71,6 @@ import panelCss from '../modules/scrap-item-modal/panel.css?inline';
  */
 export default defineContentScript({
   matches: ['*://scrap.tf/*'],
-  cssInjectionMode: 'ui',
   async main(ctx) {
     let handle: ScrapModalHandle | null = null;
     let locale: Locale = await getLocale();

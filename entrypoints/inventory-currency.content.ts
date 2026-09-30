@@ -51,8 +51,11 @@ function isTf2TabActive(): boolean {
 }
 
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
-  cssInjectionMode: 'ui',
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   async main(ctx) {
     let mountedHandle: { destroy: () => void } | null = null;
     let enabled = await isFeatureEnabled(INVENTORY_CURRENCY_FEATURE_ID);

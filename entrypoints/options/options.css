@@ -561,3 +561,93 @@ body {
   color: var(--tf2s-text-faint);
   text-align: center;
 }
+
+/* ───────────────────────── committed items options ───────────────────────── */
+
+.tf2s-committed-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tf2s-committed-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--tf2s-text);
+  cursor: pointer;
+}
+
+.tf2s-committed-color-picker {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid var(--tf2s-border);
+  border-radius: var(--tf2s-radius-sm);
+  width: 26px;
+  height: 22px;
+  cursor: pointer;
+  background: transparent;
+  padding: 0;
+  margin-left: auto;
+}
+
+.tf2s-committed-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.tf2s-committed-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.tf2s-committed-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 20px;
+  font-size: 10.5px;
+  color: var(--tf2s-text-dim);
+}
+
+.tf2s-committed-slider {
+  flex: 1;
+  max-width: 130px;
+  accent-color: var(--tf2s-accent);
+}
+
+.tf2s-committed-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tf2s-committed-preview-tile {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--tf2s-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  user-select: none;
+  align-self: center;
+}
+
+.tf2s-committed-preview-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 2px #000000;
+  pointer-events: none;
+}
+

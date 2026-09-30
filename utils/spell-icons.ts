@@ -15,6 +15,8 @@
  * viewBox всех иконок — "0 0 24 24".
  */
 
+import { normalizeSpellKey, RUSSIAN_TO_ENGLISH_SPELL } from './spells';
+
 export type SpellIconShape = 'ghost' | 'footprint' | 'speaker' | 'flame' | 'pumpkin' | 'flask';
 
 /** Отображаемое имя спелла (как в SPELL_CATALOG, utils/spells.ts) -> форма иконки. */
@@ -52,10 +54,12 @@ const SPELL_ICON_SHAPE_BY_LOWER: Record<string, SpellIconShape> = Object.fromEnt
  * "Voices from Below" со строчной "from", ключ здесь был "Voices From
  * Below" — прямое сравнение не совпадало, иконка не находилась, и рендер
  * откатывался на текстовый бейдж "VFB" вместо картинки. Теперь поиск —
- * тем же способом, без учёта регистра.
+ * тем же способом, без учёта регистра, включая русские названия.
  */
 export function getSpellIconShape(name: string): SpellIconShape | undefined {
-  return SPELL_ICON_SHAPE_BY_LOWER[name.trim().toLowerCase()];
+  const normalized = normalizeSpellKey(name);
+  const canonical = RUSSIAN_TO_ENGLISH_SPELL[normalized] ?? name.trim();
+  return SPELL_ICON_SHAPE_BY_LOWER[canonical.toLowerCase()] ?? SPELL_ICON_SHAPE_BY_LOWER[normalized];
 }
 
 interface IconShapeDef {

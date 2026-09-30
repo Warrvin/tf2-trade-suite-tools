@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version 1.1.0" />
+  <img src="https://img.shields.io/badge/version-1.2.1-blue?style=flat-square" alt="Version 1.2.1" />
   <img src="https://img.shields.io/badge/Chrome%20%2F%20Edge%20%2F%20Brave-MV3-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome MV3" />
   <img src="https://img.shields.io/badge/Firefox-MV2-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Firefox MV2" />
   <img src="https://img.shields.io/badge/built%20with-WXT%20%2B%20Vue%203-54BC4A?style=flat-square" alt="Built with WXT + Vue 3" />
@@ -49,24 +49,25 @@
 quality-of-life tools on top of the sites TF2 traders actually use every day: the Steam trade offer window, your
 Steam inventory, the Steam Community Market, backpack.tf, scrap.tf, and stntrading.eu.
 
-It isn't one big monolithic script. It's **22 independent modules**, each with its own on/off switch, grouped by
+It isn't one big monolithic script. It's **24 independent modules**, each with its own on/off switch, grouped by
 the site they run on. Turn on only what you need — a currency summary in the trade window, item-attribute icons in
-your inventory, a price-check button on backpack.tf — and leave the rest off.
+your inventory, committed item tracking, a price-check button on backpack.tf — and leave the rest off.
 
 Everything the extension draws on a page shares one visual language (the same color tokens as TF2's own item
 rarities), so it always looks like it belongs there instead of a random userscript bolted on top.
 
 ### ✨ Features
 
-22 modules across 8 sites. Click a group below to expand it.
+24 modules across 8 sites. Click a group below to expand it.
 
 <details>
 <summary><b>🪟 Trade offer window</b> — <code>steamcommunity.com/tradeoffer/*</code></summary>
 
 | Feature | What it does |
 |---|---|
-| **Wallet currency summary** | Shows how many keys, refined, reclaimed and scrap you and your trade partner have in your *entire* inventory, not just what's in the offer — updates on a button click. |
-| **Quick item add** | A panel inside the trade window: Add, Keys, Metal and Recent buttons, plus a one-click way to clear your side or your partner's. <br/>⚠️ *"Recent" adds items by their position on the page — always double-check the final offer before sending.* |
+| **Wallet currency summary** | Shows how many keys, refined, reclaimed and scrap you and your trade partner have in your *entire* inventory, not just what's in the offer — updates instantly from memory or on a button click. |
+| **Quick item add** | A panel inside the trade window: Add, Keys, Metal (with optional Ref/Rec/Scr split mode), and Recent buttons, plus "free items only" filters and a "From Offer ▾" duplicate dropdown. <br/>⚠️ *"Recent" adds items by their position on the page — always double-check the final offer before sending.* |
+| **Committed items & conflict tracker** | Visually highlights items in your inventory that are already offered in other active trades (custom badge, border, and background tint behind the item). Prevents accidental cancellations from item conflicts. |
 | **Per-side offer totals** | Under each side's avatar: how many keys and how much metal are actually in the offer right now, live as items are dragged in. Other items can show as a count or be priced via PriceDB.io. |
 | **Auto-fill from a backpack.tf link** | Opens a trade from a backpack.tf link? It adds the right item and currency automatically — no clicks needed. <br/>⚠️ *Exact auto-pick only works for sell listings; for buy listings it matches by name and asks you to pick manually if several items qualify.* |
 | **"Add listing price" button** | A standalone button that adds the currency from a backpack.tf link on click — independent of the auto-fill above. |
@@ -79,6 +80,7 @@ rarities), so it always looks like it belongs there instead of a random userscri
 
 | Feature | What it does |
 |---|---|
+| **Item attributes in offers list** | Renders spell icons, killstreak tier badges, and Unusual effect icons directly on item tiles in incoming and sent trade offers lists and trade history. |
 | **Instant Accept/Decline** | Accept and Decline buttons right in the incoming offers list — no need to open each one. |
 | **Decline all offers at once** | One button above the list declines every active incoming offer (with confirmation). |
 | **Group identical items** | Identical items collapse into one tile with a ×N badge instead of a long repeated list. |
@@ -223,7 +225,7 @@ described above.
 ### 🛠️ Building & contributing
 
 Full architecture notes, the module-by-module writeup, the localization system, and the roadmap history live in
-[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) (Russian only, for now). Short version: every feature is one folder
+[`DEVELOPMENT.md`](DEVELOPMENT.md) (Russian only, for now). Short version: every feature is one folder
 under `modules/`, listed once in `utils/registry.ts`, and localized with a small `{ ru, en }` dictionary colocated
 with its code.
 
@@ -247,24 +249,25 @@ scrap.tf, or stntrading.eu. Automation features (auto-fill, quick add, instant a
 набор удобств поверх сайтов, которыми трейдеры TF2 пользуются каждый день: окно трейд-оффера Steam, ваш инвентарь
 Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrading.eu.
 
-Это не один большой монолитный скрипт, а **22 независимых модуля**, каждый со своим тумблером, сгруппированных по
+Это не один большой монолитный скрипт, а **24 независимых модуля**, каждый со своим тумблером, сгруппированных по
 сайту, на котором они работают. Включайте только то, что нужно — сводку валюты в окне оффера, иконки атрибутов в
-инвентаре, кнопку проверки цены на backpack.tf — а остальное держите выключенным.
+инвентаре, отслеживание занятых предметов, кнопку проверки цены на backpack.tf — а остальное держите выключенным.
 
 Всё, что расширение рисует на странице, использует один визуальный язык (те же цветовые токены, что и у качеств
 предметов TF2), поэтому оно всегда выглядит органично, а не как случайный юзерскрипт поверх сайта.
 
 ### ✨ Функции
 
-22 модуля на 8 сайтах. Нажмите на группу ниже, чтобы развернуть её.
+24 модуля на 8 сайтах. Нажмите на группу ниже, чтобы развернуть её.
 
 <details>
 <summary><b>🪟 Окно трейд-оффера</b> — <code>steamcommunity.com/tradeoffer/*</code></summary>
 
 | Функция | Что делает |
 |---|---|
-| **Сводка валюты в кошельке** | Показывает, сколько ключей, рефов, рекламированных и скрапов есть у вас и у партнёра во *всём* инвентаре, а не только в оффере — обновляется по нажатию кнопки. |
-| **Быстрое добавление предметов** | Панель прямо в окне оффера: «Добавить», «Ключи», «Металл», «Недавние», плюс быстрая очистка своей или чужой стороны. <br/>⚠️ *«Недавние» добавляет предметы по их позиции на странице — всегда проверяйте итоговый список перед отправкой.* |
+| **Сводка валюты в кошельке** | Показывает, сколько ключей, рефов, рекламированных и скрапов есть у вас и у партнёра во *всём* инвентаре, а не только в оффере — обновляется мгновенно из памяти страницы или по нажатию кнопки. |
+| **Быстрое добавление предметов** | Панель прямо в окне оффера: «Добавить», «Ключи», «Металл» (с раздельным режимом Реф/Рек/Скр), «Недавние», фильтры свободных предметов и выпадающий список «Из оффера ▾». <br/>⚠️ *«Недавние» добавляет предметы по их позиции на странице — всегда проверяйте итоговый список перед отправкой.* |
+| **Занятые предметы в активных офферах** | Подсвечивает предметы, которые уже предложены в других активных сделках (значок ⇄, рамка или цветной фон за моделью). Показывает конфликты в списках офферов и подсвечивает занятые предметы в инвентаре. |
 | **Итог по сторонам оффера** | Под аватаром каждой стороны — сколько ключей и металла реально лежит в оффере прямо сейчас, обновляется по мере перетаскивания. Остальные предметы — числом или суммарной оценкой по ценам PriceDB.io. |
 | **Автозаполнение по ссылке с backpack.tf** | Оффер открыт по ссылке с backpack.tf — сама, без единого клика, добавляет нужный предмет и валюту. <br/>⚠️ *Точный автовыбор — только для объявлений на продажу; для покупки ищет по названию и просит выбрать вручную, если подходит несколько предметов.* |
 | **Кнопка «Добавить цену объявления»** | Отдельная кнопка добавляет валюту из ссылки backpack.tf по клику — независимо от автозаполнения выше. |
@@ -277,6 +280,7 @@ Steam, Торговую площадку Steam, backpack.tf, scrap.tf и stntrad
 
 | Функция | Что делает |
 |---|---|
+| **Атрибуты предметов в списке офферов** | Значки спеллов, тиры килстриков и иконки Unusual-эффектов прямо на тайлах предметов в списках входящих/отправленных офферов и в истории. |
 | **Мгновенные Accept/Decline** | Кнопки «Принять» и «Отклонить» прямо в списке входящих офферов — не нужно открывать каждый отдельно. |
 | **Отклонить все офферы разом** | Одна кнопка над списком отклоняет сразу все активные входящие офферы (с подтверждением). |
 | **Группировка одинаковых предметов** | Одинаковые предметы схлопываются в один тайл со значком ×N вместо длинного повтора. |
@@ -421,7 +425,7 @@ npm run build:firefox    # Firefox (MV2)                       → .output/firef
 ### 🛠️ Разработка и вклад в проект
 
 Полное описание архитектуры, документация по каждому модулю, система локализации и история дорожной карты — в
-[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Коротко: каждая функция — отдельная папка в `modules/`, один раз
+[`DEVELOPMENT.md`](DEVELOPMENT.md). Коротко: каждая функция — отдельная папка в `modules/`, один раз
 указанная в `utils/registry.ts`, и локализуется маленьким словарём `{ ru, en }` рядом со своим кодом.
 
 ### ⚠️ Дисклеймер

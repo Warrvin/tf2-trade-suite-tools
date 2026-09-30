@@ -9,7 +9,6 @@ import panelCss from '../modules/wallet-summary/panel.css?inline';
 
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
-  cssInjectionMode: 'ui',
   async main(ctx) {
     let mountedHandle: { destroy: () => void } | null = null;
     let locale: Locale = await getLocale();

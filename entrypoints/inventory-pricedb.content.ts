@@ -92,8 +92,11 @@ function findActiveAssetId(): string | null {
 }
 
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
-  cssInjectionMode: 'ui',
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   async main(ctx) {
     let enabled = await isFeatureEnabled(PRICEDB_CHECK_FEATURE_ID);
     let locale: Locale = await getLocale();

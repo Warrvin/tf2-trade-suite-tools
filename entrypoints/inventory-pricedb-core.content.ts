@@ -8,7 +8,11 @@ import { registerPricedbCheckCoreHandler } from '../modules/pricedb-check-button
 // её комментарий) — иначе первые ~100-150 предметов (первые постраничные
 // запросы Steam) проходят мимо перехвата.
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   world: 'MAIN',
   runAt: 'document_start',
   main() {

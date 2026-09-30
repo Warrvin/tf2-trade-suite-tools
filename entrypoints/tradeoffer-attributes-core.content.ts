@@ -9,6 +9,7 @@ import { registerAttributesCoreHandler } from '../modules/trade-item-attributes/
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
   world: 'MAIN',
+  runAt: 'document_start',
   main() {
     registerAttributesCoreHandler();
   },

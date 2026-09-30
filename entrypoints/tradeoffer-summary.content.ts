@@ -29,7 +29,6 @@ function findTheirAnchor(): Element | null {
 
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
-  cssInjectionMode: 'ui',
   async main(ctx) {
     let yourHandle: PanelHandle | null = null;
     let theirHandle: PanelHandle | null = null;

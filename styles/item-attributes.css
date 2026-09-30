@@ -28,8 +28,15 @@
  * <img> должен стать прозрачным, только когда на контейнере есть unusual
  * (иначе у не-unusual предметов пропадёт собственная иконка).
  */
-.tf2s-attr-unusual img.market_listing_item_img {
+.tf2s-attr-unusual img.market_listing_item_img,
+.trade_item.tf2s-attr-unusual img,
+.history_item.tf2s-attr-unusual img {
   background: transparent !important;
+}
+
+.trade_item,
+.history_item {
+  position: relative;
 }
 
 .tf2s-attr-uncraft {

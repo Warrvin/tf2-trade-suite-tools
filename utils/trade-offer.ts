@@ -28,8 +28,11 @@ export interface TradeInventoryItem extends SteamEconItem {
   id: string;
   appid: string | number;
   contextid: string | number;
+  classid?: string | number;
+  instanceid?: string | number;
   is_stackable?: boolean;
   is_their_item?: boolean;
+  amount?: string | number;
 }
 
 export interface SteamAppContextData {
@@ -78,6 +81,10 @@ export interface SteamTradeStateManager {
  *  MAIN-модулей страницы оффера, которым нужно не только читать, но и
  *  менять состояние (сейчас — quick-add-items и auto-fill-from-listing). */
 export interface TradeOfferWindow {
+  UserYou?: { strSteamId?: string; getInventory?: (app: number, ctx: number) => any; rgContexts?: any };
+  UserThem?: { strSteamId?: string; getInventory?: (app: number, ctx: number) => any; rgContexts?: any };
+  g_ulTradePartnerSteamID?: string | number;
+  g_ActiveInventory?: any;
   g_rgAppContextData?: SteamAppContextData;
   g_rgPartnerAppContextData?: SteamAppContextData;
   g_rgCurrentTradeStatus?: SteamCurrentTradeStatus;
@@ -90,6 +97,7 @@ export interface TradeOfferWindow {
 
 export interface CollectResult {
   items: HTMLElement[];
+  inventoryItems?: TradeInventoryItem[];
   satisfied: boolean;
 }
 
@@ -134,8 +142,58 @@ export function canModifyOffer(): boolean {
 }
 
 export function getInventory(win: TradeOfferWindow, isYou: boolean): Record<string, TradeInventoryItem> {
+  // 1. Прямой доступ из window.g_rgAppContextData / g_rgPartnerAppContextData
   const source = isYou ? win.g_rgAppContextData : win.g_rgPartnerAppContextData;
-  return source?.[TF2_APPID]?.rgContexts?.[TF2_CONTEXTID]?.inventory?.rgInventory ?? {};
+  const direct = source?.[TF2_APPID]?.rgContexts?.[TF2_CONTEXTID]?.inventory?.rgInventory;
+  if (direct && Object.keys(direct).length > 0) return direct;
+
+  const winAny = win as unknown as Record<string, any>;
+  const user = isYou ? winAny.UserYou : winAny.UserThem;
+
+  // 2. UserYou / UserThem через getInventory(440, 2)
+  if (user?.getInventory) {
+    try {
+      const userInv = user.getInventory(440, 2);
+      if (userInv) {
+        if (userInv.rgInventory && Object.keys(userInv.rgInventory).length > 0) {
+          return userInv.rgInventory;
+        }
+        if (userInv.inventory?.rgInventory && Object.keys(userInv.inventory.rgInventory).length > 0) {
+          return userInv.inventory.rgInventory;
+        }
+        // Если Steam сохранил в виде m_rgAssets и m_rgDescriptions
+        if (userInv.m_rgAssets && userInv.m_rgDescriptions) {
+          const res: Record<string, TradeInventoryItem> = {};
+          const descs = userInv.m_rgDescriptions;
+          for (const [assetId, asset] of Object.entries(userInv.m_rgAssets as Record<string, any>)) {
+            const descKey = `${asset.classid}_${asset.instanceid || 0}`;
+            const desc = descs[descKey] || {};
+            res[assetId] = { ...desc, ...asset, id: assetId, appid: 440, contextid: 2 };
+          }
+          if (Object.keys(res).length > 0) return res;
+        }
+      }
+    } catch {
+      // Игнорируем исключения
+    }
+  }
+
+  // 3. User rgContexts напрямую
+  const userCtx = user?.rgContexts?.[TF2_APPID]?.[TF2_CONTEXTID]?.inventory?.rgInventory;
+  if (userCtx && Object.keys(userCtx).length > 0) return userCtx;
+
+  // 4. g_ActiveInventory (если загружен именно этот инвентарь)
+  if (winAny.g_ActiveInventory) {
+    const act = winAny.g_ActiveInventory;
+    if (String(act.appid) === TF2_APPID && String(act.contextid) === TF2_CONTEXTID) {
+      const isActYou = !act.steamid || act.steamid === winAny.UserYou?.strSteamId;
+      if (isActYou === isYou) {
+        if (act.rgInventory && Object.keys(act.rgInventory).length > 0) return act.rgInventory;
+      }
+    }
+  }
+
+  return direct ?? {};
 }
 
 /** assetId предметов TF2, уже лежащих в слотах данной стороны оффера. */
@@ -144,7 +202,12 @@ export function getSlotAssetIds(isYou: boolean): Set<string> {
   const result = new Set<string>();
   container?.querySelectorAll<HTMLElement>('.item').forEach((el) => {
     const rgItem = (el as unknown as { rgItem?: { id?: string; appid?: string | number } }).rgItem;
-    if (rgItem?.id !== undefined && String(rgItem.appid) === TF2_APPID) result.add(String(rgItem.id));
+    if (rgItem?.id !== undefined && String(rgItem.appid) === TF2_APPID) {
+      result.add(String(rgItem.id));
+    } else {
+      const match = el.id?.match(/^item440_2_(\d+)$/);
+      if (match) result.add(match[1]);
+    }
   });
   return result;
 }
@@ -223,11 +286,20 @@ export function getElementsForItems(items: TradeInventoryItem[]): HTMLElement[] 
 /** Ищет до `amount` ключей (Mann Co. Supply Crate Key) — общий фильтр,
  *  которым пользуются и кнопка "Ключи" в quick-add-items, и добавление
  *  цены листинга в auto-fill-from-listing. */
-export function findKeys(win: TradeOfferWindow, isYou: boolean, amount: number, index: number): CollectResult {
-  const filter = (item: TradeInventoryItem) => String(item.appid) === TF2_APPID && item.market_hash_name === 'Mann Co. Supply Crate Key';
+export function findKeys(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  amount: number,
+  index: number,
+  excludeAssetIds?: Set<string>,
+): CollectResult {
+  const filter = (item: TradeInventoryItem) =>
+    String(item.appid) === TF2_APPID &&
+    item.market_hash_name === 'Mann Co. Supply Crate Key' &&
+    (!excludeAssetIds || !excludeAssetIds.has(item.id));
   const found = pickItemsForSide(win, isYou, amount, index, filter);
   const items = getElementsForItems(found);
-  return { items, satisfied: amount === items.length };
+  return { items, inventoryItems: found, satisfied: amount === found.length };
 }
 
 /** Ищет до `amount` предметов ОДНОГО конкретного номинала металла (Refined /
@@ -235,12 +307,22 @@ export function findKeys(win: TradeOfferWindow, isYou: boolean, amount: number, 
  *  в quick-add-items (см. её types.ts за тем, чем это отличается от
  *  ref-стоимостной «Металл»/getItemsForMetal ниже). Тот же приём, что и
  *  findKeys выше, просто с другим точным market_hash_name. */
-export function findMetalByKind(win: TradeOfferWindow, isYou: boolean, kind: 'refined' | 'reclaimed' | 'scrap', amount: number, index: number): CollectResult {
+export function findMetalByKind(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  kind: 'refined' | 'reclaimed' | 'scrap',
+  amount: number,
+  index: number,
+  excludeAssetIds?: Set<string>,
+): CollectResult {
   const name = METAL_NAME_BY_KIND[kind];
-  const filter = (item: TradeInventoryItem) => String(item.appid) === TF2_APPID && item.market_hash_name === name;
+  const filter = (item: TradeInventoryItem) =>
+    String(item.appid) === TF2_APPID &&
+    item.market_hash_name === name &&
+    (!excludeAssetIds || !excludeAssetIds.has(item.id));
   const found = pickItemsForSide(win, isYou, amount, index, filter);
   const items = getElementsForItems(found);
-  return { items, satisfied: amount === items.length };
+  return { items, inventoryItems: found, satisfied: amount === found.length };
 }
 
 /**
@@ -254,7 +336,13 @@ export function findMetalByKind(win: TradeOfferWindow, isYou: boolean, kind: 're
  * не должно быть в принципе (это же не то, что ввёл пользователь, а уже
  * точно известное целое число).
  */
-export function getItemsForMetalByScrap(win: TradeOfferWindow, isYou: boolean, targetScrap: number, index: number): CollectResult {
+export function getItemsForMetalByScrap(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  targetScrap: number,
+  index: number,
+  excludeAssetIds?: Set<string>,
+): CollectResult {
   let totalScrap = 0;
   const collected: TradeInventoryItem[] = [];
   const order: Array<'refined' | 'reclaimed' | 'scrap'> = ['refined', 'reclaimed', 'scrap'];
@@ -266,7 +354,10 @@ export function getItemsForMetalByScrap(win: TradeOfferWindow, isYou: boolean, t
     if (amountToAdd <= 0) continue;
 
     const name = METAL_NAME_BY_KIND[kind];
-    const filter = (item: TradeInventoryItem) => String(item.appid) === TF2_APPID && item.market_hash_name === name;
+    const filter = (item: TradeInventoryItem) =>
+      String(item.appid) === TF2_APPID &&
+      item.market_hash_name === name &&
+      (!excludeAssetIds || !excludeAssetIds.has(item.id));
     const found = pickItemsForSide(win, isYou, amountToAdd, index, filter);
     const amountAdded = Math.min(amountToAdd, found.length);
 
@@ -274,7 +365,7 @@ export function getItemsForMetalByScrap(win: TradeOfferWindow, isYou: boolean, t
     collected.push(...found);
   }
 
-  return { items: getElementsForItems(collected), satisfied: totalScrap === targetScrap };
+  return { items: getElementsForItems(collected), inventoryItems: collected, satisfied: totalScrap === targetScrap };
 }
 
 /**
@@ -283,18 +374,55 @@ export function getItemsForMetalByScrap(win: TradeOfferWindow, isYou: boolean, t
  * `getItemsForMetalByScrap` выше, переводит ref в scrap через
  * utils/currency.ts#refinedValueToScrap (общая арифметика, требование 4).
  */
-export function getItemsForMetal(win: TradeOfferWindow, isYou: boolean, amountRef: number, index: number): CollectResult {
-  return getItemsForMetalByScrap(win, isYou, refinedValueToScrap(amountRef), index);
+export function getItemsForMetal(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  amountRef: number,
+  index: number,
+  excludeAssetIds?: Set<string>,
+): CollectResult {
+  return getItemsForMetalByScrap(win, isYou, refinedValueToScrap(amountRef), index, excludeAssetIds);
+}
+
+/** Находит предметы по точному списку их assetId (для дублирования из другого оффера). */
+export function findItemsByAssetIds(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  assetIds: string[],
+): CollectResult {
+  const targetSet = new Set(assetIds);
+  const filter = (item: TradeInventoryItem) => targetSet.has(item.id);
+  const found = pickItemsForSide(win, isYou, assetIds.length, 0, filter);
+  const items = getElementsForItems(found);
+  return { items, inventoryItems: found, satisfied: found.length === assetIds.length };
+}
+
+/** Находит предметы по их economyKey (classinfo/440/classid/instanceid) */
+export function findItemsByEconomyKeys(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  economyKeys: string[],
+): CollectResult {
+  const neededKeys = [...economyKeys];
+  const filter = (item: TradeInventoryItem) => {
+    const key = `classinfo/${item.appid}/${item.classid}/${item.instanceid ?? '0'}`;
+    const idx = neededKeys.indexOf(key);
+    if (idx !== -1) {
+      neededKeys.splice(idx, 1);
+      return true;
+    }
+    return false;
+  };
+  const found = pickItemsForSide(win, isYou, economyKeys.length, 0, filter);
+  const items = getElementsForItems(found);
+  return { items, inventoryItems: found, satisfied: found.length === economyKeys.length };
 }
 
 /**
- * Добавляет уже НАЙДЕННЫЕ элементы предметов в оффер — портировано из
- * `addItemsByElements`. Читает `elItem.rgItem` — JS-свойство, которое сам
- * Steam вешает на DOM-узел предмета (не HTML-атрибут); видно ТОЛЬКО из
- * MAIN world, тот же реалм, что и у собственных скриптов страницы — поэтому
- * вызывающий entrypoint обязан исполняться с `world: 'MAIN'`.
+ * Добавляет найденные предметы в оффер. Добавляет напрямую в status.assets,
+ * поэтому не зависит от того, отрисован ли тайл прямо сейчас в окне выбора предметов.
  */
-export function addItemsByElements(win: TradeOfferWindow, itemsList: HTMLElement[]): void {
+export function addItems(win: TradeOfferWindow, result: CollectResult): void {
   if (win.Economy_UseResponsiveLayout?.() && win.ResponsiveTrade_SwitchMode) {
     win.ResponsiveTrade_SwitchMode(0);
   }
@@ -306,11 +434,18 @@ export function addItemsByElements(win: TradeOfferWindow, itemsList: HTMLElement
   const slotsCache: Record<'me' | 'them', Record<string, number>> = { me: {}, them: {} };
   let changed = false;
 
-  for (const elItem of itemsList) {
-    if (win.BIsInTradeSlot?.(elItem)) continue;
+  const itemsToAdd: TradeInventoryItem[] = [];
+  if (result.inventoryItems && result.inventoryItems.length > 0) {
+    itemsToAdd.push(...result.inventoryItems);
+  } else if (result.items && result.items.length > 0) {
+    for (const elItem of result.items) {
+      const it = (elItem as unknown as { rgItem?: TradeInventoryItem }).rgItem;
+      if (it) itemsToAdd.push(it);
+    }
+  }
 
-    const item = (elItem as unknown as { rgItem?: TradeInventoryItem }).rgItem;
-    if (!item || item.is_stackable) continue;
+  for (const item of itemsToAdd) {
+    if (item.is_stackable) continue;
 
     const cacheKey: 'me' | 'them' = item.is_their_item ? 'them' : 'me';
     const slots = status[cacheKey].assets;
@@ -330,7 +465,7 @@ export function addItemsByElements(win: TradeOfferWindow, itemsList: HTMLElement
         changed = true;
       }
     } else {
-      slots.push({ appid: item.appid, contextid: item.contextid, assetid: item.id, amount: 1 });
+      slots.push({ appid: Number(item.appid), contextid: String(item.contextid), assetid: String(item.id), amount: 1 });
       slotsCache[cacheKey][key] = slots.length - 1;
       changed = true;
     }
@@ -340,6 +475,10 @@ export function addItemsByElements(win: TradeOfferWindow, itemsList: HTMLElement
 
   status.version = (status.version ?? 0) + 1;
   win.RefreshTradeStatus?.(status);
+}
+
+export function addItemsByElements(win: TradeOfferWindow, itemsList: HTMLElement[]): void {
+  addItems(win, { items: itemsList, satisfied: true });
 }
 
 /**

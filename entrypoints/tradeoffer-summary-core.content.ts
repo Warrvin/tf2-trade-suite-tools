@@ -4,7 +4,7 @@ import { registerTradeSummaryCoreHandler } from '../modules/trade-item-summary/c
 export default defineContentScript({
   matches: ['*://steamcommunity.com/tradeoffer/*'],
   world: 'MAIN',
-  runAt: 'document_idle',
+  runAt: 'document_start',
   main() {
     registerTradeSummaryCoreHandler();
   },

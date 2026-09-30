@@ -10,7 +10,11 @@ import { INVENTORY_ATTRIBUTES_FEATURE_ID } from '../modules/inventory-item-attri
 import '../styles/item-attributes.css';
 
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   async main(ctx) {
     let handle: { stop: () => void; setDetailLevel: (level: IconDetailLevel) => void } | null = null;
     let enabled = await isFeatureEnabled(INVENTORY_ATTRIBUTES_FEATURE_ID);

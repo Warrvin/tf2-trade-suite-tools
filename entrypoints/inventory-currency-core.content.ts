@@ -14,7 +14,11 @@ import { registerInventoryCurrencyCoreHandler } from '../modules/inventory-curre
 // идемпотентен per-window, поэтому дважды он не патчит fetch/XHR, какой бы
 // из двух скриптов ни выполнился первым (см. utils/inventory-watch.ts).
 export default defineContentScript({
-  matches: ['*://steamcommunity.com/id/*/inventory*', '*://steamcommunity.com/profiles/*/inventory*'],
+  matches: [
+    '*://steamcommunity.com/id/*/inventory*',
+    '*://steamcommunity.com/profiles/*/inventory*',
+    '*://steamcommunity.com/my/inventory*',
+  ],
   world: 'MAIN',
   runAt: 'document_start',
   main() {
