@@ -60,9 +60,22 @@ export type ForItemState = 'pending' | 'added' | 'dead';
 export type OwnItemMatchState = 'added' | 'ambiguous' | 'not_found' | 'pending' | 'locked';
 
 export type AutoFillRequest =
-  | { kind: 'CHECK_FOR_ITEM'; forItem: ForItemRef }
-  | { kind: 'ADD_LISTING_PRICE'; listingIntent: ListingIntent; keys: number; metal: number }
-  | { kind: 'ADD_ITEM_BY_NAME'; itemName: string };
+  | { kind: 'CHECK_FOR_ITEM'; forItem: ForItemRef; itemName?: string }
+  | {
+      kind: 'ADD_LISTING_PRICE';
+      listingIntent: ListingIntent;
+      keys: number;
+      metal: number;
+      committedAssetIds?: string[];
+      committedEconomyKeys?: string[];
+    }
+  | {
+      kind: 'ADD_ITEM_BY_NAME';
+      itemName: string;
+      committedAssetIds?: string[];
+      committedEconomyKeys?: string[];
+    };
+
 
 export type AutoFillResponse =
   | { kind: 'CHECK_FOR_ITEM'; state: ForItemState }

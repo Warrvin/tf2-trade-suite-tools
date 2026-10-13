@@ -167,3 +167,5 @@ export function formatKeysAndScrap(keys: number, metalScrap: number): string | n
   if (metalScrap > 0) parts.push(formatMetalScrap(metalScrap));
   return parts.join(', ');
 }
+
+

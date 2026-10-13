@@ -1,19 +1,33 @@
 import { respondInMain } from '../../utils/bridge';
 import { METAL_NAME_BY_KIND, METAL_SCRAP_VALUE, refinedValueToScrap } from '../../utils/currency';
+
+const TF2_CURRENCY_CLASSIDS = new Set(['101785959', '2674', '5564', '2675']);
+function isCurrencyEconomyKey(key: string): boolean {
+  for (const cid of TF2_CURRENCY_CLASSIDS) {
+    if (key.includes(`/440/${cid}/`)) return true;
+  }
+  return false;
+}
+
+
 import {
   TF2_APPID,
   TF2_CONTEXTID,
   TradeInventoryItem,
   TradeOfferWindow,
+  addItems,
   addItemsByElements,
   canModifyOffer,
   findKeys,
+  findKeysPrioritizingFree,
   forceRefresh,
   getElementsForItems,
   getInventory,
   getItemsForMetalByScrap,
+  getItemsForMetalByScrapPrioritizingFree,
   getSlotAssetIds,
   getTheirSlots,
+  isInventoryLoaded,
   nextFrame,
 } from '../../utils/trade-offer';
 import { AUTO_FILL_CHANNEL, AutoFillRequest, AutoFillResponse, ForItemRef, ForItemState, ListingIntent, OwnItemMatchState } from './types';
@@ -92,33 +106,80 @@ function forItemKey(ref: ForItemRef): string {
  * теперь просто как альтернативный путь к тому же выводу, а не
  * единственный.
  */
-function checkForItem(win: TradeOfferWindow, ref: ForItemRef): ForItemState {
+function checkForItem(win: TradeOfferWindow, ref: ForItemRef, itemName?: string): ForItemState {
   const status = win.g_rgCurrentTradeStatus;
   if (!status) return 'pending';
 
   const key = forItemKey(ref);
   const already = status.them.assets.some((a) => `${a.appid}_${a.contextid}_${a.assetid}` === key);
+  ensurePartnerInventoryLoading(win);
 
-  if (!already) {
-    status.them.assets.push({ appid: ref.appid, contextid: ref.contextid, assetid: ref.assetid, amount: 1 });
-    if (win.GTradeStateManager) win.GTradeStateManager.m_bChangesMade = true;
-    forceRefresh(win, status);
-    return 'pending'; // дать Steam кадр на попытку отрисовать тайл, проверим на следующем опросе
-  }
-
+  const inventoryLoaded = isInventoryLoaded(win, false);
   const inventory = getInventory(win, false);
-  if (inventory[ref.assetid]) return 'added';
 
-  const inventoryLoaded = Object.keys(inventory).length > 0;
-  const isDeadByDom = getTheirSlots()?.querySelector('a[href$="_undefined"]') != null;
-
-  if (inventoryLoaded || isDeadByDom) {
-    status.them.assets = status.them.assets.filter((a) => `${a.appid}_${a.contextid}_${a.assetid}` !== key);
-    forceRefresh(win, status);
-    return 'dead';
+  // 1. Пока инвентарь партнёра ещё не загрузился — ждём (не объявляем 'dead' раньше времени!)
+  if (!inventoryLoaded) {
+    if (!already) {
+      status.them.assets.push({ appid: Number(ref.appid), contextid: String(ref.contextid), assetid: String(ref.assetid), amount: 1 });
+      if (win.GTradeStateManager) win.GTradeStateManager.m_bChangesMade = true;
+      forceRefresh(win, status);
+    }
+    return 'pending';
   }
 
-  return 'pending';
+  // --- ИНВЕНТАРЬ ЗАГРУЖЕН ---
+
+  // 2. Точный экземпляр по assetid найден в инвентаре партнёра
+  if (inventory[ref.assetid]) {
+    if (!already) {
+      status.them.assets.push({ appid: Number(ref.appid), contextid: String(ref.contextid), assetid: String(ref.assetid), amount: 1 });
+      if (win.GTradeStateManager) win.GTradeStateManager.m_bChangesMade = true;
+      forceRefresh(win, status);
+    } else {
+      // Форсируем обновление, чтобы Steam связал загруженные описания со слотом
+      forceRefresh(win, status);
+    }
+    return 'added';
+  }
+
+  // 3. Точного assetid нет, но в слотах партнёра УЖЕ лежит подходящий предмет (подставленный ранее альтернативный экземпляр)
+  if (itemName) {
+    const themSlotIds = getSlotAssetIds(false);
+    const hasMatchingInSlot = Object.values(inventory).some(
+      (item) => themSlotIds.has(String(item.id)) && isMatchItem(item, itemName),
+    );
+    if (hasMatchingInSlot) {
+      return 'added';
+    }
+  }
+
+  // 4. Точного assetid нет — ищем другой доступный экземпляр того же предмета по названию
+  if (itemName) {
+    const themSlotIds = getSlotAssetIds(false);
+    const matches = Object.values(inventory).filter(
+      (item) => !themSlotIds.has(String(item.id)) && isMatchItem(item, itemName),
+    );
+
+    if (matches.length > 0) {
+      // Убираем устаревший assetid из слотов
+      status.them.assets = status.them.assets.filter((a) => `${a.appid}_${a.contextid}_${a.assetid}` !== key);
+      const fallbackItem = matches[0];
+      status.them.assets.push({
+        appid: Number(fallbackItem.appid ?? ref.appid),
+        contextid: String(fallbackItem.contextid ?? ref.contextid),
+        assetid: String(fallbackItem.id),
+        amount: 1,
+      });
+      if (win.GTradeStateManager) win.GTradeStateManager.m_bChangesMade = true;
+      forceRefresh(win, status);
+      return 'added';
+    }
+  }
+
+  // 5. Инвентарь точно загружен, и ни точного assetid, ни альтернативного предмета с таким названием нет
+  status.them.assets = status.them.assets.filter((a) => `${a.appid}_${a.contextid}_${a.assetid}` !== key);
+  forceRefresh(win, status);
+  return 'dead';
 }
 
 /**
@@ -242,10 +303,69 @@ function countAvailableCurrency(win: TradeOfferWindow, isYou: boolean): { keys: 
  * автоопрос (см. panel.ts#pollAddPrice) просто попробует ещё раз через
  * секунду — к тому моменту Steam обычно уже успевает довесить `rgItem`.
  */
-async function addListingPrice(win: TradeOfferWindow, listingIntent: ListingIntent, keys: number, metal: number): Promise<boolean | null> {
+let lastRequestedPartnerId: string | number | null = null;
+let lastPartnerInventoryLoadTime = 0;
+
+function ensurePartnerInventoryLoading(win: TradeOfferWindow): void {
+  const winAny = win as unknown as Record<string, any>;
+  const userThem = winAny.UserThem;
+  if (!userThem) return;
+
+  const currentPartnerId = win.g_ulTradePartnerSteamID ?? userThem.strSteamId ?? 'unknown';
+  if (lastRequestedPartnerId !== currentPartnerId) {
+    lastRequestedPartnerId = currentPartnerId;
+    lastPartnerInventoryLoadTime = 0;
+  }
+
+  const tf2Context = userThem.rgContexts?.[TF2_APPID]?.[TF2_CONTEXTID];
+  const inv = tf2Context?.inventory;
+
+  // 1. Уже загружен
+  if (inv?.m_bLoaded || (inv?.rgInventory && Object.keys(inv.rgInventory).length > 0)) {
+    return;
+  }
+
+  // 2. В процессе загрузки Steam'ом
+  if (inv?.m_bLoading) {
+    return;
+  }
+
+  // 3. Защита от спама (не чаще одного запроса в 15 секунд)
+  const now = Date.now();
+  if (now - lastPartnerInventoryLoadTime < 15000) {
+    return;
+  }
+  lastPartnerInventoryLoadTime = now;
+
+  try {
+    if (typeof userThem.loadInventory === 'function') {
+      userThem.loadInventory(440, 2);
+    } else if (typeof userThem.getInventory === 'function') {
+      userThem.getInventory(440, 2);
+    }
+  } catch (e) {
+    console.warn('[AutoFill] Failed to request partner inventory:', e);
+  }
+}
+
+async function addListingPrice(
+  win: TradeOfferWindow,
+  listingIntent: ListingIntent,
+  keys: number,
+  metal: number,
+  committedAssetIds?: string[],
+  committedEconomyKeys?: string[],
+): Promise<boolean | null> {
   if (keys <= 0 && metal <= 0) return true; // нечего добавлять — не ошибка
 
   const isYou = listingIntent === 1;
+  if (!isYou) {
+    ensurePartnerInventoryLoading(win);
+    if (!isInventoryLoaded(win, false)) {
+      return false; // инвентарь партнёра ещё подгружается из Steam
+    }
+  }
+
   const targetScrap = metal > 0 ? refinedValueToScrap(metal) : 0;
   const current = getCurrentCurrency(win, isYou);
   const neededKeys = Math.max(0, keys - current.keys);
@@ -280,18 +400,38 @@ async function addListingPrice(win: TradeOfferWindow, listingIntent: ListingInte
     }
   }
 
+  // Множество занятых предметов в активных офферах (учитываем только при отдаче своих предметов)
+  const committedSet = new Set<string>(isYou ? (committedAssetIds ?? []) : []);
+  if (isYou) {
+    document
+      .querySelectorAll<HTMLElement>('#your_slots div.item[data-tf2s-committed], #inventory_box div.item[data-tf2s-committed]')
+      .forEach((el) => {
+        const match = el.id.match(/^item440_2_(\d+)$/);
+        if (match) committedSet.add(match[1]);
+      });
+  }
+
   const elements: HTMLElement[] = [];
+  const invItems: TradeInventoryItem[] = [];
 
   if (neededKeys > 0) {
-    const r = findKeys(win, isYou, neededKeys, 0);
+    const r = findKeysPrioritizingFree(win, isYou, neededKeys, 0, isYou ? committedSet : undefined);
     elements.push(...r.items);
+    if (r.inventoryItems) invItems.push(...r.inventoryItems);
   }
   if (neededScrap > 0) {
-    const r = getItemsForMetalByScrap(win, isYou, neededScrap, 0);
+    const r = getItemsForMetalByScrapPrioritizingFree(win, isYou, neededScrap, 0, isYou ? committedSet : undefined);
     elements.push(...r.items);
+    if (r.inventoryItems) invItems.push(...r.inventoryItems);
   }
 
-  addItemsByElements(win, elements);
+  for (const item of invItems) {
+    item.is_their_item = !isYou;
+    item.appid = item.appid ?? 440;
+    item.contextid = item.contextid ?? 2;
+  }
+
+  addItems(win, { items: elements, inventoryItems: invItems, satisfied: true });
   await nextFrame();
 
   // Не верим тому, что НАШЛИСЬ элементы — проверяем, что реально осело в
@@ -301,50 +441,149 @@ async function addListingPrice(win: TradeOfferWindow, listingIntent: ListingInte
 }
 
 /**
- * Ищет СВОЙ предмет по названию из объявления и, если совпадение
- * однозначное, добавляет его в оффер — новая функция, по прямому запросу
- * пользователя ("хочу, чтобы автозаполнение пыталось само подобрать мой
- * предмет по названию, но только если совпадение однозначное").
- *
- * Нужна ТОЛЬКО для объявлений на ПОКУПКУ (`listingIntent === 0`): тогда
- * именно пользователь отдаёт предмет, а backpack.tf не даёт точный assetId
- * (см. шапку файла) — единственная зацепка, которую можно прочитать из
- * ссылки — `listing_item_name` (пишет `bptf-listing-trade-params`). Для
- * продажи эта функция не вызывается вовсе: там уже есть точный `for_item`.
- *
- * СОЗНАТЕЛЬНО НЕ автоматизируем неоднозначный случай. Название
- * (`market_hash_name`) — не уникальный идентификатор: у одноимённых
- * предметов могут различаться качество, killstreak-тир, spell'ы, износ —
- * это разные по ценности вещи. Если подходящих предметов в инвентаре
- * пользователя НЕСКОЛЬКО, автовыбор "на глаз" рискует отдать не тот
- * экземпляр — вместо этого возвращаем `'ambiguous'`, ISOLATED показывает
- * сообщение и ничего не трогает, выбор предмета остаётся за пользователем
- * (например, кнопкой "Добавить" из `quick-add-items`).
- *
- * `'pending'` — свой инвентарь ещё не подгрузился (на практике редко: он
- * готов почти сразу после открытия страницы, но проверяем на всякий
- * случай, тем же способом, что и `checkForItem` для инвентаря партнёра —
- * см. её комментарий) ИЛИ данные уже есть, но DOM-тайл для найденного
- * предмета ещё не отрисован (`getElementsForItems` не нашёл элемент) —
- * оба случая одинаково стоит просто повторить опрос чуть позже, а не
- * считать это отсутствием предмета.
+ * Проверяет, задействован ли конкретный предмет инвентаря в других активных офферах.
  */
-function findOwnItemByName(win: TradeOfferWindow, itemName: string): OwnItemMatchState {
+function isItemCommitted(
+  item: TradeInventoryItem,
+  committedAssetIds?: Set<string>,
+  committedEconomyKeys?: Set<string>,
+): boolean {
+  const idStr = String(item.id);
+  if (committedAssetIds?.has(idStr)) return true;
+
+  if (committedEconomyKeys && item.classid) {
+    const econKey = `classinfo/${item.appid}/${item.classid}/${item.instanceid ?? '0'}`;
+    if (!isCurrencyEconomyKey(econKey) && committedEconomyKeys.has(econKey)) {
+      return true;
+    }
+  }
+
+  const el = document.getElementById(`item${item.appid}_${item.contextid}_${item.id}`);
+  if (el?.hasAttribute('data-tf2s-committed')) {
+    return true;
+  }
+
+  return false;
+}
+
+function normalizeItemName(name: string): string {
+  return name
+    .trim()
+    .replace(/[\u2018\u2019\u02BC\u2032`]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\([^)]*Level\s+\d+[^)]*\)/gi, '')
+    .replace(/\s*#\d+$/g, '')
+    .trim();
+}
+
+function isItemNameMatch(rawCandidateName: string | undefined, rawTargetName: string): boolean {
+  if (!rawCandidateName || !rawTargetName) return false;
+  if (rawCandidateName === rawTargetName) return true;
+
+  const normCandidate = normalizeItemName(rawCandidateName);
+  const normTarget = normalizeItemName(rawTargetName);
+
+  if (normCandidate === normTarget) return true;
+  if (normCandidate.toLowerCase() === normTarget.toLowerCase()) return true;
+
+  const stripThe = (s: string) => s.replace(/^the\s+/i, '').trim();
+  if (stripThe(normCandidate).toLowerCase() === stripThe(normTarget).toLowerCase()) return true;
+
+  return false;
+}
+
+function isItemUncraftable(item: TradeInventoryItem): boolean {
+  if (!item.descriptions || !Array.isArray(item.descriptions)) return false;
+  return item.descriptions.some(
+    (d) =>
+      !d.color &&
+      /^\(\s*(?:Not.*Usable in Crafting|Нельзя использовать в ковке|Нельзя ковать)/i.test(d.value),
+  );
+}
+
+function isMatchItem(item: TradeInventoryItem, rawTargetName: string): boolean {
+  if (!rawTargetName) return false;
+
+  const targetIsUncraft = /^(?:Non-Craftable|Non-Craft|Uncraftable)\s+/i.test(rawTargetName);
+  const targetCleanName = rawTargetName.replace(/^(?:Non-Craftable|Non-Craft|Uncraftable)\s+/i, '');
+
+  const candidateIsUncraft = isItemUncraftable(item);
+
+  // Если в целевом названии из объявления указано Non-Craftable, требуем соответствия крафтовости
+  if (targetIsUncraft !== candidateIsUncraft) {
+    return false;
+  }
+
+  const hashName = item.market_hash_name || '';
+  const name = item.name || '';
+
+  return isItemNameMatch(hashName, targetCleanName) || isItemNameMatch(name, targetCleanName);
+}
+
+/**
+ * Ищет СВОЙ предмет по названию из объявления и, если совпадение
+ * однозначное, добавляет его в оффер.
+ *
+ * Сначала выбирает среди свободных (незанятых) предметов. Если свободных предметов
+ * нет вовсе, но есть ровно один занятый — выбирает его.
+ */
+function findOwnItemByName(
+  win: TradeOfferWindow,
+  itemName: string,
+  committedAssetIds?: Set<string>,
+  committedEconomyKeys?: Set<string>,
+): OwnItemMatchState {
   const inventory = getInventory(win, true);
   if (Object.keys(inventory).length === 0) return 'pending';
 
   const addedIds = getSlotAssetIds(true);
+
+  // Если подходящий предмет УЖЕ лежит в слотах нашего предложения — это успех
+  const alreadyInSlots = Object.values(inventory).some(
+    (item) => addedIds.has(String(item.id)) && isMatchItem(item, itemName),
+  );
+  if (alreadyInSlots) {
+    return 'added';
+  }
+
   const matches = Object.values(inventory).filter(
-    (item) => item.market_hash_name === itemName && !addedIds.has(String(item.id))
+    (item) => !addedIds.has(String(item.id)) && isMatchItem(item, itemName),
   );
 
   if (matches.length === 0) return 'not_found';
-  if (matches.length > 1) return 'ambiguous';
 
-  const elements = getElementsForItems(matches);
-  if (elements.length === 0) return 'pending'; // данные есть, тайл ещё не отрисован — не "не найдено"
+  // Разделяем найденные предметы на свободные и занятые в других офферах
+  const freeMatches = matches.filter((item) => !isItemCommitted(item, committedAssetIds, committedEconomyKeys));
+  const busyMatches = matches.filter((item) => isItemCommitted(item, committedAssetIds, committedEconomyKeys));
 
-  addItemsByElements(win, elements);
+  let chosenItem: TradeInventoryItem | null = null;
+
+  if (freeMatches.length === 1) {
+    // Ровно один свободный предмет — выбираем его
+    chosenItem = freeMatches[0];
+  } else if (freeMatches.length > 1) {
+    // Несколько свободных предметов с таким названием — неоднозначно
+    return 'ambiguous';
+  } else {
+    // Свободных предметов нет вовсе: подбираем занятый, если он ровно один
+    if (busyMatches.length === 1) {
+      chosenItem = busyMatches[0];
+    } else if (busyMatches.length > 1) {
+      return 'ambiguous';
+    } else {
+      return 'not_found';
+    }
+  }
+
+  // Гарантируем обязательные поля для добавления в оффер
+  chosenItem.appid = chosenItem.appid ?? 440;
+  chosenItem.contextid = chosenItem.contextid ?? 2;
+  chosenItem.is_their_item = false;
+
+  const elements = getElementsForItems([chosenItem]);
+  addItems(win, { items: elements, inventoryItems: [chosenItem], satisfied: true });
   return 'added';
 }
 
@@ -358,9 +597,16 @@ function findOwnItemByName(win: TradeOfferWindow, itemName: string): OwnItemMatc
  * ОДНОВРЕМЕННО.
  */
 let addListingPriceInFlight: Promise<boolean | null> | null = null;
-function addListingPriceGuarded(win: TradeOfferWindow, listingIntent: ListingIntent, keys: number, metal: number): Promise<boolean | null> {
+function addListingPriceGuarded(
+  win: TradeOfferWindow,
+  listingIntent: ListingIntent,
+  keys: number,
+  metal: number,
+  committedAssetIds?: string[],
+  committedEconomyKeys?: string[],
+): Promise<boolean | null> {
   if (addListingPriceInFlight) return addListingPriceInFlight;
-  addListingPriceInFlight = addListingPrice(win, listingIntent, keys, metal).finally(() => {
+  addListingPriceInFlight = addListingPrice(win, listingIntent, keys, metal, committedAssetIds, committedEconomyKeys).finally(() => {
     addListingPriceInFlight = null;
   });
   return addListingPriceInFlight;
@@ -375,17 +621,33 @@ export function registerAutoFillCoreHandler(): () => void {
       if (req.forItem.appid !== TF2_APPID || req.forItem.contextid !== TF2_CONTEXTID) {
         return { kind: 'CHECK_FOR_ITEM', state: 'dead' };
       }
-      return { kind: 'CHECK_FOR_ITEM', state: checkForItem(win, req.forItem) };
+      return { kind: 'CHECK_FOR_ITEM', state: checkForItem(win, req.forItem, req.itemName) };
     }
 
     if (req.kind === 'ADD_ITEM_BY_NAME') {
       if (!canModifyOffer()) return { kind: 'ADD_ITEM_BY_NAME', state: 'locked' };
-      return { kind: 'ADD_ITEM_BY_NAME', state: findOwnItemByName(win, req.itemName) };
+      const committedSet = new Set<string>(req.committedAssetIds ?? []);
+      const economySet = new Set<string>(req.committedEconomyKeys ?? []);
+      document
+        .querySelectorAll<HTMLElement>('#your_slots div.item[data-tf2s-committed], #inventory_box div.item[data-tf2s-committed]')
+        .forEach((el) => {
+          const match = el.id.match(/^item440_2_(\d+)$/);
+          if (match) committedSet.add(match[1]);
+        });
+      return { kind: 'ADD_ITEM_BY_NAME', state: findOwnItemByName(win, req.itemName, committedSet, economySet) };
     }
 
     if (!canModifyOffer()) return { kind: 'ADD_LISTING_PRICE', satisfied: null };
 
-    const satisfied = await addListingPriceGuarded(win, req.listingIntent, req.keys, req.metal);
+    const satisfied = await addListingPriceGuarded(
+      win,
+      req.listingIntent,
+      req.keys,
+      req.metal,
+      req.committedAssetIds,
+      req.committedEconomyKeys,
+    );
     return { kind: 'ADD_LISTING_PRICE', satisfied };
   });
 }
+

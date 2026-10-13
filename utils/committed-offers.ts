@@ -80,6 +80,8 @@ export function isCurrencyClassId(classid: string): boolean {
   return TF2_CURRENCY_CLASSIDS.has(classid);
 }
 
+
+
 /**
  * Точный поиск JSON-объекта g_rgCurrentTradeStatus методом подсчёта фигурных скобок
  */

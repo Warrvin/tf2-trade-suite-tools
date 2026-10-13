@@ -68,14 +68,28 @@ const REQUEST_TIMEOUT_MS = 5000;
  * всегда каноническое имя Стима.
  */
 export function buildPriceableName(item: SteamEconItem, attrs: ItemAttributes): string {
-  const base = item.market_hash_name ?? item.name ?? '';
+  let base = item.market_hash_name ?? item.name ?? '';
   if (attrs.effect !== undefined) {
     const effectName = getEffectName(attrs.effect);
     if (effectName) {
       const withoutUnusual = base.replace(/^Unusual\s+/, '');
-      return `${effectName} ${withoutUnusual}`;
+      base = `${effectName} ${withoutUnusual}`;
     }
   }
+
+  // 1. Killstreak Kits в TF2 (Killstreak Kit, Specialized Killstreak Kit, Professional Killstreak Kit)
+  // ВСЕГДА являются Non-Craftable в экономике TF2 (defindex 6527, 6523, 6526).
+  // На PriceDB и backpack.tf они котируются строго с префиксом "Non-Craftable ".
+  // Не путать с Kit Fabricator (изготовителями) — изготовители являются craftable.
+  const isKillstreakKit = /\b(?:Killstreak|Specialized Killstreak|Professional Killstreak)\b.*Kit$/i.test(base);
+
+  // 2. Любой другой Uncraftable предмет (attrs.uncraft === true)
+  const isUncraftable = Boolean(attrs.uncraft || isKillstreakKit);
+
+  if (isUncraftable && !base.startsWith('Non-Craftable ')) {
+    base = `Non-Craftable ${base}`;
+  }
+
   return base;
 }
 
@@ -131,7 +145,14 @@ export async function resolveSku(name: string): Promise<string | null> {
   const cached = skuCache.get(name);
   if (cached !== undefined) return cached;
 
-  const data = await fetchJson<SkuResolveResponse>(SKU_API_BASE + encodeURIComponent(name));
+  // Если это Killstreak Kit, но имя пришло без "Non-Craftable ", сразу запрашиваем с ним
+  const targetName =
+    !name.startsWith('Non-Craftable ') &&
+    /\b(?:Killstreak|Specialized Killstreak|Professional Killstreak)\b.*Kit$/i.test(name)
+      ? `Non-Craftable ${name}`
+      : name;
+
+  const data = await fetchJson<SkuResolveResponse>(SKU_API_BASE + encodeURIComponent(targetName));
   const sku = data?.success && typeof data.data?.sku === 'string' ? data.data.sku : null;
   // Кэшируем и неудачу ("предмет не найден") — резолвер не найдёт его и в
   // следующий раз, пересчитывать смысла нет. Сетевые сбои НЕ кэшируем (see
@@ -160,8 +181,23 @@ async function fetchPrice(sku: string): Promise<PricedbLookupResult> {
  *  Вызывать ТОЛЬКО из ISOLATED world — см. комментарий в шапке файла. */
 export async function lookupPrice(name: string): Promise<PricedbLookupResult> {
   const sku = await resolveSku(name);
-  if (!sku) return { ok: false };
-  return fetchPrice(sku);
+  if (sku) {
+    const priceRes = await fetchPrice(sku);
+    if (priceRes.ok) return priceRes;
+  }
+
+  // Фолбэк: если для исходного SKU не нашлось цены (например, предмет существует в экономике только как Non-Craftable,
+  // как все наборы серийного убийцы), пробуем вариант с префиксом "Non-Craftable "
+  if (!name.startsWith('Non-Craftable ')) {
+    const uncraftName = `Non-Craftable ${name}`;
+    const uncraftSku = await resolveSku(uncraftName);
+    if (uncraftSku) {
+      const uncraftPriceRes = await fetchPrice(uncraftSku);
+      if (uncraftPriceRes.ok) return uncraftPriceRes;
+    }
+  }
+
+  return { ok: false };
 }
 
 /** Ссылка на страницу конкретного SKU — открыть, чтобы глазами сверить

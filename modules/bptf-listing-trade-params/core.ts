@@ -83,11 +83,23 @@ function parseLegacyListing(listingEl: HTMLElement): ParsedListing {
   const currencies = parseCurrencies(itemEl.dataset.listing_price);
 
   const nameEl = listingEl.querySelector('.listing-title h5');
-  const itemName =
-    (nameEl ? [...nameEl.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent?.trim()).filter(Boolean).join(' ') : '') ||
-    itemEl.dataset.name ||
-    itemEl.title ||
-    null;
+  let rawName = '';
+  if (nameEl) {
+    const clone = nameEl.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('.badge, .label, svg, i, style, script, .listing-meta').forEach((el) => el.remove());
+    rawName = clone.textContent?.replace(/\s+/g, ' ').trim() || '';
+  }
+  if (!rawName && itemEl.dataset.name) {
+    rawName = itemEl.dataset.name.trim();
+  }
+  if (!rawName && itemEl.title) {
+    const firstLine = itemEl.title.split('\n')[0].trim();
+    if (firstLine) rawName = firstLine;
+  }
+
+  const itemName = rawName
+    ? rawName.replace(/\s*\([^)]*Level\s+\d+[^)]*\)/gi, '').replace(/\s+/g, ' ').trim()
+    : null;
 
   return { offerLinkEl, intent, currencies, itemName: itemName || null, forItem: null };
 }
@@ -117,7 +129,11 @@ function parseNextListing(listingEl: HTMLElement): ParsedListing {
   if (headerLinkEl) {
     const clone = headerLinkEl.cloneNode(true) as HTMLElement;
     clone.querySelector('.text-sell, .text-buy')?.remove();
-    itemName = clone.textContent?.replace(/\s+/g, ' ').trim() || null;
+    clone.querySelectorAll('.badge, .label, svg, i, style, script').forEach((el) => el.remove());
+    const raw = clone.textContent?.replace(/\s+/g, ' ').trim();
+    if (raw) {
+      itemName = raw.replace(/\s*\([^)]*Level\s+\d+[^)]*\)/gi, '').replace(/\s+/g, ' ').trim() || null;
+    }
   }
 
   let forItem: string | null = null;

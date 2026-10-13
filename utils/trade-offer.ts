@@ -41,6 +41,7 @@ export interface SteamAppContextData {
       [contextid: string]: {
         inventory?: {
           rgInventory?: Record<string, TradeInventoryItem>;
+          rgDescriptions?: Record<string, any>;
         };
       };
     };
@@ -141,46 +142,61 @@ export function canModifyOffer(): boolean {
   return (hasVisibleInventoryWithId || !anyModifyTradeOfferVisible) && !isElementVisible(changeOfferButton);
 }
 
+function mergeDescriptions(
+  inventory: Record<string, TradeInventoryItem>,
+  descriptions?: Record<string, any>,
+): Record<string, TradeInventoryItem> {
+  if (!descriptions || Object.keys(descriptions).length === 0) return inventory;
+  for (const item of Object.values(inventory)) {
+    if (!item.market_hash_name && item.classid) {
+      const descKey = `${item.classid}_${item.instanceid || 0}`;
+      const desc = descriptions[descKey];
+      if (desc) {
+        Object.assign(item, desc);
+      }
+    }
+  }
+  return inventory;
+}
+
 export function getInventory(win: TradeOfferWindow, isYou: boolean): Record<string, TradeInventoryItem> {
   // 1. Прямой доступ из window.g_rgAppContextData / g_rgPartnerAppContextData
   const source = isYou ? win.g_rgAppContextData : win.g_rgPartnerAppContextData;
-  const direct = source?.[TF2_APPID]?.rgContexts?.[TF2_CONTEXTID]?.inventory?.rgInventory;
-  if (direct && Object.keys(direct).length > 0) return direct;
+  const directContext = source?.[TF2_APPID]?.rgContexts?.[TF2_CONTEXTID]?.inventory;
+  const direct = directContext?.rgInventory;
+  if (direct && Object.keys(direct).length > 0) {
+    return mergeDescriptions(direct, directContext?.rgDescriptions);
+  }
 
   const winAny = win as unknown as Record<string, any>;
   const user = isYou ? winAny.UserYou : winAny.UserThem;
 
-  // 2. UserYou / UserThem через getInventory(440, 2)
-  if (user?.getInventory) {
-    try {
-      const userInv = user.getInventory(440, 2);
-      if (userInv) {
-        if (userInv.rgInventory && Object.keys(userInv.rgInventory).length > 0) {
-          return userInv.rgInventory;
-        }
-        if (userInv.inventory?.rgInventory && Object.keys(userInv.inventory.rgInventory).length > 0) {
-          return userInv.inventory.rgInventory;
-        }
-        // Если Steam сохранил в виде m_rgAssets и m_rgDescriptions
-        if (userInv.m_rgAssets && userInv.m_rgDescriptions) {
-          const res: Record<string, TradeInventoryItem> = {};
-          const descs = userInv.m_rgDescriptions;
-          for (const [assetId, asset] of Object.entries(userInv.m_rgAssets as Record<string, any>)) {
-            const descKey = `${asset.classid}_${asset.instanceid || 0}`;
-            const desc = descs[descKey] || {};
-            res[assetId] = { ...desc, ...asset, id: assetId, appid: 440, contextid: 2 };
-          }
-          if (Object.keys(res).length > 0) return res;
-        }
+  // 2. User rgContexts напрямую
+  // ВАЖНО: Ни в коем случае НЕ вызываем user.getInventory(440, 2)! В Steam (economy.js) метод
+  // CUser.prototype.getInventory при отсутствии загруженного инвентаря немедленно вызывает this.loadInventory,
+  // что отправляет сетевой запрос к /partnerinventory/. Если вызывать это при фоновом опросе или из сводок,
+  // сервер Steam бомбардируется десятками запросов и возвращает 429 (Too Many Requests), ломая загрузку инвентаря.
+  const userCtx = user?.rgContexts?.[TF2_APPID]?.[TF2_CONTEXTID];
+  const userInv = userCtx?.inventory;
+  if (userInv) {
+    if (userInv.rgInventory && Object.keys(userInv.rgInventory).length > 0) {
+      return mergeDescriptions(userInv.rgInventory, userInv.rgDescriptions || userInv.m_rgDescriptions);
+    }
+    if (userInv.inventory?.rgInventory && Object.keys(userInv.inventory.rgInventory).length > 0) {
+      return mergeDescriptions(userInv.inventory.rgInventory, userInv.inventory.rgDescriptions);
+    }
+    // Если Steam сохранил в виде m_rgAssets и m_rgDescriptions
+    if (userInv.m_rgAssets && userInv.m_rgDescriptions) {
+      const res: Record<string, TradeInventoryItem> = {};
+      const descs = userInv.m_rgDescriptions;
+      for (const [assetId, asset] of Object.entries(userInv.m_rgAssets as Record<string, any>)) {
+        const descKey = `${asset.classid}_${asset.instanceid || 0}`;
+        const desc = descs[descKey] || {};
+        res[assetId] = { ...desc, ...asset, id: assetId, appid: 440, contextid: 2 };
       }
-    } catch {
-      // Игнорируем исключения
+      if (Object.keys(res).length > 0) return res;
     }
   }
-
-  // 3. User rgContexts напрямую
-  const userCtx = user?.rgContexts?.[TF2_APPID]?.[TF2_CONTEXTID]?.inventory?.rgInventory;
-  if (userCtx && Object.keys(userCtx).length > 0) return userCtx;
 
   // 4. g_ActiveInventory (если загружен именно этот инвентарь)
   if (winAny.g_ActiveInventory) {
@@ -188,12 +204,33 @@ export function getInventory(win: TradeOfferWindow, isYou: boolean): Record<stri
     if (String(act.appid) === TF2_APPID && String(act.contextid) === TF2_CONTEXTID) {
       const isActYou = !act.steamid || act.steamid === winAny.UserYou?.strSteamId;
       if (isActYou === isYou) {
-        if (act.rgInventory && Object.keys(act.rgInventory).length > 0) return act.rgInventory;
+        if (act.rgInventory && Object.keys(act.rgInventory).length > 0) {
+          return mergeDescriptions(act.rgInventory, act.rgDescriptions || act.m_rgDescriptions);
+        }
       }
     }
   }
 
-  return direct ?? {};
+  return direct ? mergeDescriptions(direct, directContext?.rgDescriptions) : {};
+}
+
+/**
+ * Проверяет, завершена ли загрузка инвентаря TF2 для указанной стороны оффера.
+ */
+export function isInventoryLoaded(win: TradeOfferWindow, isYou: boolean): boolean {
+  const winAny = win as unknown as Record<string, any>;
+  const user = isYou ? winAny.UserYou : winAny.UserThem;
+  const tf2Context = user?.rgContexts?.[TF2_APPID]?.[TF2_CONTEXTID];
+  const userInv = tf2Context?.inventory;
+
+  if (userInv?.m_bLoaded) return true;
+
+  const source = isYou ? win.g_rgAppContextData : win.g_rgPartnerAppContextData;
+  const directContext = source?.[TF2_APPID]?.rgContexts?.[TF2_CONTEXTID]?.inventory;
+  if ((directContext as any)?.m_bLoaded) return true;
+
+  const inv = getInventory(win, isYou);
+  return Object.keys(inv).length > 0;
 }
 
 /** assetId предметов TF2, уже лежащих в слотах данной стороны оффера. */
@@ -263,6 +300,7 @@ export function pickItemsForSide(
     }
     if (items.length >= amount) break;
     if (filter(item)) {
+      item.is_their_item = !isYou;
       if (currentIndex >= idx) items.push(item);
       total.push(item);
       currentIndex++;
@@ -300,6 +338,41 @@ export function findKeys(
   const found = pickItemsForSide(win, isYou, amount, index, filter);
   const items = getElementsForItems(found);
   return { items, inventoryItems: found, satisfied: amount === found.length };
+}
+
+/**
+ * Ищет ключи с приоритетом свободных предметов: сначала берёт свободные (не входящие в committedAssetIds),
+ * а если свободных не хватает до нужного количества — добирает остаток из занятых.
+ */
+export function findKeysPrioritizingFree(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  amount: number,
+  index: number,
+  committedAssetIds?: Set<string>,
+): CollectResult {
+  if (!committedAssetIds || committedAssetIds.size === 0) {
+    return findKeys(win, isYou, amount, index);
+  }
+
+  // 1. Ищем среди свободных
+  const free = findKeys(win, isYou, amount, index, committedAssetIds);
+  if (free.satisfied || free.items.length >= amount) {
+    return free;
+  }
+
+  // 2. Если свободных не хватило — добираем занятыми
+  const remaining = amount - free.items.length;
+  const pickedIds = new Set((free.inventoryItems ?? []).map((i) => String(i.id)));
+  const busy = findKeys(win, isYou, remaining, 0, pickedIds);
+
+  const allElements = [...free.items, ...busy.items];
+  const allInvItems = [...(free.inventoryItems ?? []), ...(busy.inventoryItems ?? [])];
+  return {
+    items: allElements,
+    inventoryItems: allInvItems,
+    satisfied: allInvItems.length === amount,
+  };
 }
 
 /** Ищет до `amount` предметов ОДНОГО конкретного номинала металла (Refined /
@@ -367,6 +440,73 @@ export function getItemsForMetalByScrap(
 
   return { items: getElementsForItems(collected), inventoryItems: collected, satisfied: totalScrap === targetScrap };
 }
+
+/**
+ * Набирает металл на сумму targetScrap с приоритетом свободных предметов для каждого номинала (Refined -> Reclaimed -> Scrap):
+ * сначала берёт свободный металл нужного номинала, а если свободных не хватает — добирает занятыми того же номинала.
+ */
+export function getItemsForMetalByScrapPrioritizingFree(
+  win: TradeOfferWindow,
+  isYou: boolean,
+  targetScrap: number,
+  index: number,
+  committedAssetIds?: Set<string>,
+): CollectResult {
+  if (!committedAssetIds || committedAssetIds.size === 0) {
+    return getItemsForMetalByScrap(win, isYou, targetScrap, index);
+  }
+
+  let totalScrap = 0;
+  const collected: TradeInventoryItem[] = [];
+  const pickedIds = new Set<string>();
+  const order: Array<'refined' | 'reclaimed' | 'scrap'> = ['refined', 'reclaimed', 'scrap'];
+
+  for (const kind of order) {
+    if (totalScrap === targetScrap) break;
+    const value = METAL_SCRAP_VALUE[kind];
+    const amountToAdd = Math.floor((targetScrap - totalScrap) / value);
+    if (amountToAdd <= 0) continue;
+
+    const name = METAL_NAME_BY_KIND[kind];
+
+    // 1. Сначала свободный металл этого номинала
+    const freeFilter = (item: TradeInventoryItem) =>
+      String(item.appid) === TF2_APPID &&
+      item.market_hash_name === name &&
+      !committedAssetIds.has(String(item.id)) &&
+      !pickedIds.has(String(item.id));
+    const freeFound = pickItemsForSide(win, isYou, amountToAdd, index, freeFilter);
+    for (const item of freeFound) {
+      pickedIds.add(String(item.id));
+    }
+    collected.push(...freeFound);
+    let amountOfKindAdded = freeFound.length;
+
+    // 2. Если свободных не хватило — добираем занятыми этого же номинала
+    const remainingOfKind = amountToAdd - freeFound.length;
+    if (remainingOfKind > 0) {
+      const busyFilter = (item: TradeInventoryItem) =>
+        String(item.appid) === TF2_APPID &&
+        item.market_hash_name === name &&
+        !pickedIds.has(String(item.id));
+      const busyFound = pickItemsForSide(win, isYou, remainingOfKind, 0, busyFilter);
+      for (const item of busyFound) {
+        pickedIds.add(String(item.id));
+      }
+      collected.push(...busyFound);
+      amountOfKindAdded += busyFound.length;
+    }
+
+    totalScrap += amountOfKindAdded * value;
+  }
+
+  return {
+    items: getElementsForItems(collected),
+    inventoryItems: collected,
+    satisfied: totalScrap === targetScrap,
+  };
+}
+
 
 /**
  * Набирает металл на сумму `amountRef` (в ref, дробное — то, что ввёл

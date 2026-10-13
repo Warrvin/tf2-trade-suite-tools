@@ -1,6 +1,8 @@
 import { requestFromMain } from '../../utils/bridge';
 import type { Locale } from '../../utils/i18n';
+import { getCommittedOffers } from '../../utils/committed-offers';
 import { AUTO_FILL_CHANNEL, AutoFillRequest, AutoFillResponse, ForItemRef, ListingIntent } from './types';
+
 
 const UI = {
   ru: {
@@ -181,6 +183,25 @@ export function mountAutoFillPanel(
     }, 6000);
   }
 
+  async function getCommittedItemIds(): Promise<{ assetIds: string[]; economyKeys: string[] }> {
+    try {
+      const currentOfferMatch = window.location.pathname.match(/\/tradeoffer\/(\d+)/);
+      const currentOfferId = currentOfferMatch ? currentOfferMatch[1] : null;
+
+      const offers = await getCommittedOffers();
+      const assetIds: string[] = [];
+      const economyKeys: string[] = [];
+      for (const [id, offer] of Object.entries(offers)) {
+        if (currentOfferId && id === currentOfferId) continue;
+        if (offer.assetIds) assetIds.push(...offer.assetIds);
+        if (offer.economyKeys) economyKeys.push(...offer.economyKeys);
+      }
+      return { assetIds, economyKeys };
+    } catch {
+      return { assetIds: [], economyKeys: [] };
+    }
+  }
+
   async function sendRequest(req: AutoFillRequest): Promise<AutoFillResponse | null> {
     try {
       return await requestFromMain<AutoFillRequest, AutoFillResponse>(AUTO_FILL_CHANNEL, req);
@@ -197,7 +218,15 @@ export function mountAutoFillPanel(
     btnEl.textContent = UI[locale].addListingPrice;
     btnEl.addEventListener('click', () => {
       void (async () => {
-        const res = await sendRequest({ kind: 'ADD_LISTING_PRICE', listingIntent: listingIntent as ListingIntent, keys, metal });
+        const committed = await getCommittedItemIds();
+        const res = await sendRequest({
+          kind: 'ADD_LISTING_PRICE',
+          listingIntent: listingIntent as ListingIntent,
+          keys,
+          metal,
+          committedAssetIds: committed.assetIds,
+          committedEconomyKeys: committed.economyKeys,
+        });
         if (destroyed || !res || res.kind !== 'ADD_LISTING_PRICE') return;
 
         if (res.satisfied === null) showMessage(UI[locale].offerNotEditable, 'error');
@@ -206,6 +235,7 @@ export function mountAutoFillPanel(
     });
     panel.appendChild(btnEl);
   }
+
 
   function hideButton() {
     if (!btnEl) return;
@@ -232,7 +262,11 @@ export function mountAutoFillPanel(
   async function pollForItem(ref: ForItemRef, attempt: number) {
     if (destroyed || !itemPollActive) return;
 
-    const res = await sendRequest({ kind: 'CHECK_FOR_ITEM', forItem: ref });
+    const res = await sendRequest({
+      kind: 'CHECK_FOR_ITEM',
+      forItem: ref,
+      itemName: itemName ?? undefined,
+    });
     if (destroyed || !itemPollActive) return;
 
     const state = res?.kind === 'CHECK_FOR_ITEM' ? res.state : 'pending';
@@ -272,7 +306,15 @@ export function mountAutoFillPanel(
   async function pollAddPrice(attempt: number) {
     if (destroyed || !pricePollActive) return;
 
-    const res = await sendRequest({ kind: 'ADD_LISTING_PRICE', listingIntent: listingIntent as ListingIntent, keys, metal });
+    const committed = await getCommittedItemIds();
+    const res = await sendRequest({
+      kind: 'ADD_LISTING_PRICE',
+      listingIntent: listingIntent as ListingIntent,
+      keys,
+      metal,
+      committedAssetIds: committed.assetIds,
+      committedEconomyKeys: committed.economyKeys,
+    });
     if (destroyed || !pricePollActive) return;
 
     if (res?.kind === 'ADD_LISTING_PRICE' && res.satisfied === true) return; // тихий успех
@@ -307,8 +349,15 @@ export function mountAutoFillPanel(
   async function pollAddOwnItem(name: string, attempt: number) {
     if (destroyed || !ownItemPollActive) return;
 
-    const res = await sendRequest({ kind: 'ADD_ITEM_BY_NAME', itemName: name });
+    const committed = await getCommittedItemIds();
+    const res = await sendRequest({
+      kind: 'ADD_ITEM_BY_NAME',
+      itemName: name,
+      committedAssetIds: committed.assetIds,
+      committedEconomyKeys: committed.economyKeys,
+    });
     if (destroyed || !ownItemPollActive) return;
+
 
     const state = res?.kind === 'ADD_ITEM_BY_NAME' ? res.state : 'pending';
     if (state === 'added') return; // тихий успех
@@ -316,14 +365,14 @@ export function mountAutoFillPanel(
       showMessage(UI[locale].ambiguousOwnItem, 'info');
       return;
     }
-    if (state === 'not_found') {
-      showMessage(UI[locale].ownItemNotFound, 'error');
-      return;
-    }
     if (attempt < CHECK_MAX_ATTEMPTS) {
       ownItemPollTimer = window.setTimeout(() => void pollAddOwnItem(name, attempt + 1), CHECK_POLL_MS);
     } else {
-      showMessage(UI[locale].ownItemTimeout, 'error');
+      if (state === 'not_found') {
+        showMessage(UI[locale].ownItemNotFound, 'error');
+      } else {
+        showMessage(UI[locale].ownItemTimeout, 'error');
+      }
     }
   }
 
